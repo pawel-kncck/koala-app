@@ -4,8 +4,8 @@ import { MainContent } from './components/MainContent';
 
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentProject, setCurrentProject] = useState('Data Analysis Project');
-  const [activeTab, setActiveTab] = useState('chat');
+  const [currentProject, setCurrentProject] = useState('Q3 Sales Analysis');
+  const [activeTab, setActiveTab] = useState('data-studio');
 
   return (
     <div className="h-screen flex bg-[#343541] text-[#ECECF1] overflow-hidden">
