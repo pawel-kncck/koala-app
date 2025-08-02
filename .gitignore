@@ -21,6 +21,11 @@ pip-delete-this-directory.txt
 .env.*
 !.env.example
 
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
 # Uploads and data
 backend/uploads/*
 !backend/uploads/.gitkeep
