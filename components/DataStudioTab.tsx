@@ -1,17 +1,23 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Upload, File, Eye, Trash2, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
 import { Alert, AlertDescription } from './ui/alert';
+import api from '../src/services/api';
+
+interface DataStudioTabProps {
+  projectId: string;
+}
 
 interface UploadedFile {
   id: string;
-  name: string;
-  size: string;
-  type: string;
-  uploadedAt: Date;
-  status: 'uploading' | 'success' | 'error';
+  project_id: string;
+  filename: string;
+  size: number;
+  upload_date: string;
+  file_type: string;
+  status?: 'uploading' | 'success' | 'error';
 }
 
 const sampleData = {
@@ -30,11 +36,27 @@ const sampleData = {
   ]
 };
 
-export function DataStudioTab() {
+export function DataStudioTab({ projectId }: DataStudioTabProps) {
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState<any>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load files on mount and when project changes
+  useEffect(() => {
+    loadFiles();
+  }, [projectId]);
+
+  const loadFiles = async () => {
+    try {
+      const fileList = await api.files.list(projectId);
+      setFiles(fileList.map((f: UploadedFile) => ({ ...f, status: 'success' })));
+    } catch (error) {
+      console.error('Failed to load files:', error);
+    }
+  };
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return bytes + ' B';
@@ -42,7 +64,7 @@ export function DataStudioTab() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
-  const handleFileUpload = (fileList: FileList | null) => {
+  const handleFileUpload = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
     setUploadError(null);
@@ -57,26 +79,41 @@ export function DataStudioTab() {
       return;
     }
 
-    // Create new file entry
-    const newFile: UploadedFile = {
-      id: Date.now().toString(),
-      name: file.name,
-      size: formatFileSize(file.size),
-      type: fileExtension === '.csv' ? 'CSV' : 'Excel',
-      uploadedAt: new Date(),
+    // Create temporary file entry
+    const tempId = Date.now().toString();
+    const tempFile: UploadedFile = {
+      id: tempId,
+      project_id: projectId,
+      filename: file.name,
+      size: file.size,
+      upload_date: new Date().toISOString(),
+      file_type: fileExtension === '.csv' ? 'CSV' : 'Excel',
       status: 'uploading'
     };
 
-    setFiles([...files, newFile]);
+    setFiles([...files, tempFile]);
 
-    // Simulate upload process
-    setTimeout(() => {
+    try {
+      // Upload to backend
+      const uploadedFile = await api.files.upload(projectId, file);
+      
+      // Update with real file data
       setFiles(prevFiles =>
         prevFiles.map(f =>
-          f.id === newFile.id ? { ...f, status: 'success' } : f
+          f.id === tempId ? { ...uploadedFile, status: 'success' } : f
         )
       );
-    }, 1500);
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadError('Failed to upload file. Please try again.');
+      
+      // Update status to error
+      setFiles(prevFiles =>
+        prevFiles.map(f =>
+          f.id === tempId ? { ...f, status: 'error' } : f
+        )
+      );
+    }
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -98,8 +135,27 @@ export function DataStudioTab() {
     handleFileUpload(e.dataTransfer.files);
   };
 
-  const handleFileDelete = (id: string) => {
-    setFiles(files.filter(file => file.id !== id));
+  const handleFileDelete = async (id: string) => {
+    try {
+      await api.files.delete(projectId, id);
+      setFiles(files.filter(file => file.id !== id));
+    } catch (error) {
+      console.error('Failed to delete file:', error);
+      alert('Failed to delete file. Please try again.');
+    }
+  };
+
+  const handlePreview = async (fileId: string) => {
+    setPreviewLoading(true);
+    try {
+      const data = await api.files.preview(projectId, fileId);
+      setPreviewData(data);
+    } catch (error) {
+      console.error('Failed to preview file:', error);
+      alert('Failed to preview file. Please try again.');
+    } finally {
+      setPreviewLoading(false);
+    }
   };
 
   return (
@@ -154,16 +210,19 @@ export function DataStudioTab() {
                     <AlertCircle className="h-5 w-5 text-red-400" />
                   )}
                   <div>
-                    <div className="text-[#ECECF1]">{file.name}</div>
+                    <div className="text-[#ECECF1]">{file.filename}</div>
                     <div className="text-sm text-gray-400">
-                      {file.size} • {file.type} • Uploaded {file.uploadedAt.toLocaleTimeString()}
+                      {formatFileSize(file.size)} • {file.file_type} • Uploaded {new Date(file.upload_date).toLocaleTimeString()}
                     </div>
                   </div>
                 </div>
                 <div className="flex space-x-2">
                   {file.status === 'success' && (
                     <>
-                      <Dialog>
+                      <Dialog onOpenChange={(open) => {
+                        if (open) handlePreview(file.id);
+                        else setPreviewData(null);
+                      }}>
                         <DialogTrigger asChild>
                           <Button variant="ghost" size="sm" className="text-[#ECECF1] hover:bg-gray-600">
                             <Eye className="h-4 w-4 mr-1" />
@@ -172,61 +231,42 @@ export function DataStudioTab() {
                         </DialogTrigger>
                         <DialogContent className="max-w-5xl bg-[#343541] border-gray-600">
                           <DialogHeader>
-                            <DialogTitle className="text-[#ECECF1]">Data Preview: {file.name}</DialogTitle>
+                            <DialogTitle className="text-[#ECECF1]">Data Preview: {file.filename}</DialogTitle>
                           </DialogHeader>
                           <div className="max-h-[500px] overflow-auto bg-gray-800 rounded-lg p-4">
-                            {file.name === 'july_sales.csv' ? (
+                            {previewLoading ? (
+                              <div className="flex items-center justify-center py-8">
+                                <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+                              </div>
+                            ) : previewData ? (
                               <Table>
                                 <TableHeader>
                                   <TableRow className="border-gray-600">
-                                    <TableHead className="text-[#ECECF1]">ID</TableHead>
-                                    <TableHead className="text-[#ECECF1]">Product</TableHead>
-                                    <TableHead className="text-[#ECECF1]">QTY</TableHead>
-                                    <TableHead className="text-[#ECECF1]">RRP</TableHead>
-                                    <TableHead className="text-[#ECECF1]">Date</TableHead>
-                                    <TableHead className="text-[#ECECF1]">Region</TableHead>
+                                    {previewData.columns.map((col: string) => (
+                                      <TableHead key={col} className="text-[#ECECF1]">{col}</TableHead>
+                                    ))}
                                   </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                  {sampleData['july_sales.csv'].map((row) => (
-                                    <TableRow key={row.id} className="border-gray-600">
-                                      <TableCell className="text-[#ECECF1]">{row.id}</TableCell>
-                                      <TableCell className="text-[#ECECF1]">{row.product}</TableCell>
-                                      <TableCell className="text-[#ECECF1]">{row.qty}</TableCell>
-                                      <TableCell className="text-[#ECECF1]">${row.rrp}</TableCell>
-                                      <TableCell className="text-[#ECECF1]">{row.date}</TableCell>
-                                      <TableCell className="text-[#ECECF1]">{row.region}</TableCell>
+                                  {previewData.data.map((row: any, idx: number) => (
+                                    <TableRow key={idx} className="border-gray-600">
+                                      {previewData.columns.map((col: string) => (
+                                        <TableCell key={col} className="text-[#ECECF1]">
+                                          {row[col]?.toString() || ''}
+                                        </TableCell>
+                                      ))}
                                     </TableRow>
                                   ))}
                                 </TableBody>
                               </Table>
                             ) : (
-                              <Table>
-                                <TableHeader>
-                                  <TableRow className="border-gray-600">
-                                    <TableHead className="text-[#ECECF1]">ID</TableHead>
-                                    <TableHead className="text-[#ECECF1]">Name</TableHead>
-                                    <TableHead className="text-[#ECECF1]">Email</TableHead>
-                                    <TableHead className="text-[#ECECF1]">Purchases</TableHead>
-                                    <TableHead className="text-[#ECECF1]">Total Spent</TableHead>
-                                  </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                  {sampleData.default.map((row) => (
-                                    <TableRow key={row.id} className="border-gray-600">
-                                      <TableCell className="text-[#ECECF1]">{row.id}</TableCell>
-                                      <TableCell className="text-[#ECECF1]">{row.name}</TableCell>
-                                      <TableCell className="text-[#ECECF1]">{row.email}</TableCell>
-                                      <TableCell className="text-[#ECECF1]">{row.purchases}</TableCell>
-                                      <TableCell className="text-[#ECECF1]">${row.total_spent}</TableCell>
-                                    </TableRow>
-                                  ))}
-                                </TableBody>
-                              </Table>
+                              <div className="text-center py-8 text-gray-400">
+                                Failed to load preview
+                              </div>
                             )}
                           </div>
                           <div className="text-sm text-gray-400 mt-2">
-                            Showing first 100 rows of {file.name}
+                            {previewData && `Showing ${previewData.preview_rows} rows of ${file.filename}`}
                           </div>
                         </DialogContent>
                       </Dialog>

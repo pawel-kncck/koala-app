@@ -1,11 +1,77 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { MainContent } from './components/MainContent';
+import api from './src/services/api';
+
+export interface Project {
+  id: string;
+  name: string;
+  created_at: string;
+}
 
 export default function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [currentProject, setCurrentProject] = useState('Q3 Sales Analysis');
+  const [currentProject, setCurrentProject] = useState<Project | null>(null);
+  const [projects, setProjects] = useState<Project[]>([]);
   const [activeTab, setActiveTab] = useState('data-studio');
+  const [loading, setLoading] = useState(true);
+
+  // Load projects on mount
+  useEffect(() => {
+    loadProjects();
+  }, []);
+
+  const loadProjects = async () => {
+    try {
+      const projectList = await api.projects.list();
+      setProjects(projectList);
+      
+      // If no current project and projects exist, select the first one
+      if (!currentProject && projectList.length > 0) {
+        setCurrentProject(projectList[0]);
+      }
+      
+      // If no projects exist, create a default one
+      if (projectList.length === 0) {
+        const newProject = await api.projects.create('Q3 Sales Analysis');
+        setProjects([newProject]);
+        setCurrentProject(newProject);
+      }
+    } catch (error) {
+      console.error('Failed to load projects:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleProjectCreate = async (name: string) => {
+    try {
+      const newProject = await api.projects.create(name);
+      setProjects([...projects, newProject]);
+      setCurrentProject(newProject);
+    } catch (error) {
+      console.error('Failed to create project:', error);
+      throw error;
+    }
+  };
+
+  const handleProjectSelect = (projectId: string) => {
+    const project = projects.find(p => p.id === projectId);
+    if (project) {
+      setCurrentProject(project);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center bg-[#343541] text-[#ECECF1]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+          <p>Loading projects...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex bg-[#343541] text-[#ECECF1] overflow-hidden">
@@ -13,13 +79,17 @@ export default function App() {
         collapsed={sidebarCollapsed}
         onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         currentProject={currentProject}
-        onProjectSelect={setCurrentProject}
+        projects={projects}
+        onProjectSelect={handleProjectSelect}
+        onProjectCreate={handleProjectCreate}
       />
-      <MainContent
-        projectName={currentProject}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-      />
+      {currentProject && (
+        <MainContent
+          project={currentProject}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
+      )}
     </div>
   );
 }

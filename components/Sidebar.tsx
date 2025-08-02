@@ -6,41 +6,42 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 
+import { Project } from '../App';
+
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
-  currentProject: string;
-  onProjectSelect: (project: string) => void;
+  currentProject: Project | null;
+  projects: Project[];
+  onProjectSelect: (projectId: string) => void;
+  onProjectCreate: (name: string) => Promise<void>;
 }
 
-interface Project {
-  id: string;
-  name: string;
-  createdAt: Date;
-}
-
-const initialProjects: Project[] = [
-  { id: '1', name: 'Q3 Sales Analysis', createdAt: new Date('2024-01-15') },
-  { id: '2', name: 'Customer Insights', createdAt: new Date('2024-01-10') },
-  { id: '3', name: 'Market Research 2024', createdAt: new Date('2024-01-05') },
-];
-
-export function Sidebar({ collapsed, onToggle, currentProject, onProjectSelect }: SidebarProps) {
-  const [projects, setProjects] = useState<Project[]>(initialProjects);
+export function Sidebar({ 
+  collapsed, 
+  onToggle, 
+  currentProject, 
+  projects,
+  onProjectSelect, 
+  onProjectCreate 
+}: SidebarProps) {
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
-  const handleNewProject = () => {
-    if (newProjectName.trim()) {
-      const newProject: Project = {
-        id: Date.now().toString(),
-        name: newProjectName.trim(),
-        createdAt: new Date()
-      };
-      setProjects([newProject, ...projects]);
-      onProjectSelect(newProject.name);
-      setNewProjectName('');
-      setIsNewProjectDialogOpen(false);
+  const handleNewProject = async () => {
+    if (newProjectName.trim() && !isCreating) {
+      setIsCreating(true);
+      try {
+        await onProjectCreate(newProjectName.trim());
+        setNewProjectName('');
+        setIsNewProjectDialogOpen(false);
+      } catch (error) {
+        console.error('Failed to create project:', error);
+        alert('Failed to create project. Please try again.');
+      } finally {
+        setIsCreating(false);
+      }
     }
   };
 
@@ -85,9 +86,9 @@ export function Sidebar({ collapsed, onToggle, currentProject, onProjectSelect }
               key={project.id}
               variant="ghost"
               size="icon"
-              onClick={() => onProjectSelect(project.name)}
+              onClick={() => onProjectSelect(project.id)}
               className={`text-[#ECECF1] hover:bg-gray-700 text-xs ${
-                currentProject === project.name ? 'bg-gray-700' : ''
+                currentProject?.id === project.id ? 'bg-gray-700' : ''
               }`}
               title={project.name}
             >
@@ -168,9 +169,9 @@ export function Sidebar({ collapsed, onToggle, currentProject, onProjectSelect }
               key={project.id}
               variant="ghost"
               className={`w-full justify-start text-left text-[#ECECF1] hover:bg-gray-700 ${
-                currentProject === project.name ? 'bg-gray-700' : ''
+                currentProject?.id === project.id ? 'bg-gray-700' : ''
               }`}
-              onClick={() => onProjectSelect(project.name)}
+              onClick={() => onProjectSelect(project.id)}
             >
               <Folder className="h-4 w-4 mr-2 flex-shrink-0" />
               <div className="truncate">{project.name}</div>

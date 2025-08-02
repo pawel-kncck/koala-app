@@ -2,15 +2,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { DataStudioTab } from './DataStudioTab';
 import { ContextTab } from './ContextTab';
 import { ChatTab } from './ChatTab';
+import { Project } from '../App';
 
 interface MainContentProps {
-  projectName: string;
+  project: Project;
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
 
 export function MainContent({
-  projectName,
+  project,
   activeTab,
   onTabChange,
 }: MainContentProps) {
@@ -18,7 +19,7 @@ export function MainContent({
     <div className="flex-1 flex flex-col">
       {/* Header */}
       <div className="p-6">
-        <h1 className="text-2xl text-[#ECECF1]">{projectName}</h1>
+        <h1 className="text-2xl text-[#ECECF1]">{project.name}</h1>
       </div>
       <div className="border-b border-gray-600 mx-6"></div>
 
@@ -51,13 +52,13 @@ export function MainContent({
         <div className="border-b border-gray-600 mx-6"></div>
 
         <TabsContent value="data-studio" className="h-full m-0">
-          <DataStudioTab />
+          <DataStudioTab projectId={project.id} />
         </TabsContent>
         <TabsContent value="context" className="h-full m-0">
-          <ContextTab />
+          <ContextTab projectId={project.id} />
         </TabsContent>
         <TabsContent value="chat" className="flex-1 m-0 min-h-0">
-          <ChatTab />
+          <ChatTab projectId={project.id} />
         </TabsContent>
       </Tabs>
     </div>
