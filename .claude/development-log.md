@@ -236,3 +236,31 @@ def _set_resource_limits(self):
 
 ---
 EOF < /dev/null
+#### [10:15] - Create code execution API endpoint
+**Commit**: `d0cccb4` - `feat(backend): create code execution API endpoint`
+**Files Modified**: 
+- `backend/main.py` - Added code execution endpoints to FastAPI
+
+**Details**:
+- Added POST /api/projects/{project_id}/execute endpoint
+- Automatic selection between Docker and subprocess executors
+- Data files automatically loaded as variables based on filenames
+- Comprehensive error handling with traceback support
+- Added health check endpoint for execution service status
+- Returns structured results including DataFrames, plots, and values
+
+**Code Snippet**:
+```python
+# Automatic executor selection
+try:
+    result = subprocess.run(['docker', '--version'], capture_output=True)
+    if result.returncode == 0:
+        code_executor = CodeExecutor()
+        logger.info("Using Docker-based code executor")
+except:
+    code_executor = SubprocessExecutor()
+    logger.info("Using subprocess-based code executor (fallback)")
+```
+
+---
+EOF < /dev/null
