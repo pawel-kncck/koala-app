@@ -585,4 +585,16 @@ backend/.env.example  # Only safe example file tracked
 - Fixed method name from execute() to execute_code() in two places
 - Also fixed return format to properly structure response with success/output/results
 
+#### [23:35] - Fix Docker sandbox image check to properly fallback
+**Commit**: `383e542` - `fix(backend): add Docker image check to properly fallback to subprocess`
+**Files Modified**: 
+- `backend/main.py` - Added Docker image existence check
+
+**Details**:
+- Chat was failing with "Unable to find image 'koala-sandbox:latest'"
+- Docker was available but sandbox image hadn't been built
+- Added check for image existence before using Docker executor
+- Now properly falls back to subprocess executor when image missing
+- Server log shows: "Using subprocess-based code executor (fallback)"
+
 ---

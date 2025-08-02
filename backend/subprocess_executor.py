@@ -109,22 +109,37 @@ class SubprocessExecutor:
     
     def _set_resource_limits(self):
         """Set resource limits for the subprocess (Unix only)."""
-        # Memory limit
-        memory_bytes = self.memory_limit_mb * 1024 * 1024
-        resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+        import platform
         
-        # CPU time limit (as backup to timeout)
-        resource.setrlimit(resource.RLIMIT_CPU, (self.timeout + 5, self.timeout + 5))
-        
-        # Limit number of processes
-        resource.setrlimit(resource.RLIMIT_NPROC, (1, 1))
-        
-        # Limit file size (10MB max)
-        file_size_limit = 10 * 1024 * 1024
-        resource.setrlimit(resource.RLIMIT_FSIZE, (file_size_limit, file_size_limit))
-        
-        # Disable core dumps
-        resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+        try:
+            # CPU time limit (as backup to timeout)
+            resource.setrlimit(resource.RLIMIT_CPU, (self.timeout + 5, self.timeout + 5))
+            
+            # Limit file size (10MB max)
+            file_size_limit = 10 * 1024 * 1024
+            resource.setrlimit(resource.RLIMIT_FSIZE, (file_size_limit, file_size_limit))
+            
+            # Disable core dumps
+            resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
+            
+            # macOS doesn't support RLIMIT_AS and RLIMIT_NPROC in the same way as Linux
+            if platform.system() != 'Darwin':
+                # Memory limit (Linux only)
+                memory_bytes = self.memory_limit_mb * 1024 * 1024
+                resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+                
+                # Limit number of processes (Linux only)
+                resource.setrlimit(resource.RLIMIT_NPROC, (1, 1))
+            else:
+                # On macOS, use RLIMIT_DATA instead of RLIMIT_AS
+                memory_bytes = self.memory_limit_mb * 1024 * 1024
+                try:
+                    resource.setrlimit(resource.RLIMIT_DATA, (memory_bytes, memory_bytes))
+                except:
+                    pass  # Some macOS versions don't support this either
+                    
+        except Exception as e:
+            logger.warning(f"Could not set all resource limits: {str(e)}")
     
     def _wrap_code(self, user_code: str, data_files: Dict[str, str]) -> str:
         """
