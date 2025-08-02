@@ -597,4 +597,16 @@ backend/.env.example  # Only safe example file tracked
 - Now properly falls back to subprocess executor when image missing
 - Server log shows: "Using subprocess-based code executor (fallback)"
 
+#### [23:40] - Fix subprocess executor resource limits for macOS
+**Commit**: `64275b3` - `fix(backend): fix subprocess executor resource limits for macOS`
+**Files Modified**: 
+- `backend/subprocess_executor.py` - Added platform-specific resource limit handling
+
+**Details**:
+- Chat failing with "Exception occurred in preexec_fn" on macOS
+- macOS doesn't support RLIMIT_AS and RLIMIT_NPROC like Linux
+- Added platform detection to skip unsupported limits on Darwin
+- Used RLIMIT_DATA as fallback for memory limits on macOS
+- Wrapped all resource limit setting in try/except for robustness
+
 ---

@@ -169,7 +169,10 @@ for module in dangerous_modules:
     if module in sys.modules:
         del sys.modules[module]
 
-# Override dangerous builtins
+# Override dangerous builtins - but keep __import__ for pandas
+import builtins
+original_import = builtins.__import__
+
 safe_builtins = {
     'abs': abs, 'all': all, 'any': any, 'ascii': ascii,
     'bin': bin, 'bool': bool, 'bytearray': bytearray, 'bytes': bytes,
@@ -185,9 +188,14 @@ safe_builtins = {
     'sum': sum, 'tuple': tuple, 'type': type, 'zip': zip,
     'False': False, 'None': None, 'True': True,
     '__name__': '__main__', '__doc__': None,
+    '__import__': original_import,  # Keep import for pandas/numpy/matplotlib
+    'hasattr': hasattr, 'getattr': getattr, 'setattr': setattr,  # Needed by pandas
+    'property': property, 'staticmethod': staticmethod, 'classmethod': classmethod,
+    'super': super, 'ValueError': ValueError, 'TypeError': TypeError,
+    'AttributeError': AttributeError, 'KeyError': KeyError, 'IndexError': IndexError,
+    'Exception': Exception, 'StopIteration': StopIteration,
 }
 
-import builtins
 for name in dir(builtins):
     if name not in safe_builtins:
         try:
