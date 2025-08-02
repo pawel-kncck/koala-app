@@ -6,9 +6,11 @@ Supports OpenAI GPT-4 and can be extended for other providers.
 import os
 import logging
 from typing import Dict, List, Optional, Tuple
-from openai import OpenAI
 import json
 from dotenv import load_dotenv
+
+# For now, use the v0.x API which is already installed
+import openai
 
 # Load environment variables
 load_dotenv()
@@ -18,7 +20,7 @@ logger = logging.getLogger(__name__)
 class LLMService:
     """Service for interacting with Large Language Models."""
     
-    def __init__(self, model: str = "gpt-4", api_key: Optional[str] = None):
+    def __init__(self, model: str = "gpt-3.5-turbo", api_key: Optional[str] = None):
         """
         Initialize the LLM service.
         
@@ -31,9 +33,10 @@ class LLMService:
         
         if not self.api_key:
             logger.warning("No OpenAI API key found. LLM features will be limited.")
-            self.client = None
+            self.has_api_key = False
         else:
-            self.client = OpenAI(api_key=self.api_key)
+            openai.api_key = self.api_key
+            self.has_api_key = True
             logger.info(f"LLM service initialized with model: {self.model}")
     
     def analyze_query(self, query: str, context: str, data_schema: Dict) -> Dict:
@@ -48,7 +51,7 @@ class LLMService:
         Returns:
             Analysis results including intent and required operations
         """
-        if not self.client:
+        if not self.has_api_key:
             return {"error": "LLM service not available"}
         
         system_prompt = """You are a data analysis assistant. Analyze the user's query and determine:
@@ -74,14 +77,13 @@ Analyze this query and return a JSON object with:
 - description: brief description of what to do"""
         
         try:
-            response = self.client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
-                temperature=0.3,
-                response_format={"type": "json_object"}
+                temperature=0.3
             )
             
             analysis = json.loads(response.choices[0].message.content)
@@ -103,7 +105,7 @@ Analyze this query and return a JSON object with:
         Returns:
             Tuple of (success, generated_code)
         """
-        if not self.client:
+        if not self.has_api_key:
             return False, "# LLM service not available\nprint('Please configure OpenAI API key')"
         
         system_prompt = """You are an expert Python data analyst. Generate pandas code to answer data queries.
@@ -143,7 +145,7 @@ Generate Python code using pandas to answer this query. Make sure to:
 4. Create visualizations if requested"""
         
         try:
-            response = self.client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},
@@ -179,7 +181,7 @@ Generate Python code using pandas to answer this query. Make sure to:
         Returns:
             Formatted insight text
         """
-        if not self.client:
+        if not self.has_api_key:
             # Fallback formatting without LLM
             return self._format_results_simple(results)
         
@@ -211,7 +213,7 @@ Results:
 Convert these results into a clear, conversational insight that answers the user's query."""
         
         try:
-            response = self.client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model=self.model,
                 messages=[
                     {"role": "system", "content": system_prompt},

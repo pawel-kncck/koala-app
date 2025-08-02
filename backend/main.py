@@ -335,7 +335,7 @@ async def chat(project_id: str, message: ChatMessage):
     schema_info = await get_project_data_schema(project_id)
     
     # Check if LLM service is available
-    if not llm_service.client:
+    if not llm_service.has_api_key:
         return {
             "response": "AI service is not configured. Please set up your OpenAI API key.",
             "timestamp": datetime.now(),
