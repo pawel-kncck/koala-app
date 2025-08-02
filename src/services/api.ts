@@ -2,16 +2,28 @@
 
 const API_BASE_URL = 'http://localhost:8000/api';
 
+// Get auth token from localStorage
+function getAuthToken(): string | null {
+  return localStorage.getItem('authToken');
+}
+
 // Helper function for API calls
 async function apiCall(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<any> {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
+    ...options.headers,
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers: {
-      ...options.headers,
-    },
+    headers,
   });
 
   if (!response.ok) {
@@ -44,9 +56,17 @@ export const filesApi = {
   upload: async (projectId: string, file: File) => {
     const formData = new FormData();
     formData.append('file', file);
+    
+    const token = getAuthToken();
+    const headers: HeadersInit = {};
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
 
     const response = await fetch(`${API_BASE_URL}/projects/${projectId}/files`, {
       method: 'POST',
+      headers,
       body: formData,
     });
 
@@ -80,20 +100,14 @@ export const contextApi = {
   },
 
   update: async (projectId: string, content: string) => {
-    const formData = new FormData();
-    formData.append('context', content);
-
-    const response = await fetch(`${API_BASE_URL}/projects/${projectId}/context`, {
+    return apiCall(`/projects/${projectId}/context`, {
       method: 'PUT',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content }),
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ detail: 'Update failed' }));
-      throw new Error(error.detail || `Update Error: ${response.status}`);
-    }
-
-    return response.json();
   },
 };
 

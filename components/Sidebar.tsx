@@ -5,6 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { useAuth } from '../frontend/src/contexts/AuthContext';
 
 import { Project } from '../App';
 
@@ -25,6 +26,7 @@ export function Sidebar({
   onProjectSelect, 
   onProjectCreate 
 }: SidebarProps) {
+  const { user, logout } = useAuth();
   const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -55,7 +57,7 @@ export function Sidebar({
 
   const handleLogout = () => {
     if (confirm('Are you sure you want to logout?')) {
-      alert('Logout functionality would be implemented here');
+      logout();
     }
   };
 
@@ -189,8 +191,8 @@ export function Sidebar({
                 <User className="h-4 w-4 text-[#ECECF1]" />
               </div>
               <div className="flex-1">
-                <div className="text-sm text-[#ECECF1]">John Doe</div>
-                <div className="text-xs text-gray-400">john@example.com</div>
+                <div className="text-sm text-[#ECECF1]">{user?.username || 'User'}</div>
+                <div className="text-xs text-gray-400">{user?.email || 'user@example.com'}</div>
               </div>
               <ChevronDown className="h-4 w-4 text-gray-400" />
             </div>

@@ -1,6 +1,11 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { MainContent } from './components/MainContent';
+import { AuthProvider, useAuth } from './frontend/src/contexts/AuthContext';
+import { LoginPage } from './frontend/src/pages/LoginPage';
+import { RegisterPage } from './frontend/src/pages/RegisterPage';
+import { ProtectedRoute } from './frontend/src/components/ProtectedRoute';
 import api from './src/services/api';
 
 export interface Project {
@@ -9,7 +14,7 @@ export interface Project {
   created_at: string;
 }
 
-export default function App() {
+function MainApp() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [currentProject, setCurrentProject] = useState<Project | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -91,5 +96,27 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainApp />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
   );
 }
