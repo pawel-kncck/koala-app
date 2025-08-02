@@ -1,8 +1,13 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Plus } from 'lucide-react';
+import { Send, Bot, User, Plus, Loader2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { ScrollArea } from './ui/scroll-area';
+import api from '../src/services/api';
+
+interface ChatTabProps {
+  projectId: string;
+}
 
 interface Message {
   id: string;
@@ -11,14 +16,7 @@ interface Message {
   timestamp: Date;
 }
 
-const contextAwareResponses = [
-  "Based on your Q3 sales data and the context you provided, I can analyze the total revenue by multiplying QTY by RRP. Let me calculate that for you...",
-  "Looking at your sales data, I notice you have columns for 'QTY' (units sold) and 'RRP' (recommended retail price). Would you like me to calculate the total revenue or analyze top-selling products?",
-  "I understand you're focusing on Q3 sales analysis. Based on the data structure you've described, I can help you identify trends, calculate key metrics, or compare performance across regions.",
-  "Given your context about tracking monthly growth rates and excluding returns, I'll make sure to factor those requirements into my analysis.",
-];
-
-export function ChatTab() {
+export function ChatTab({ projectId }: ChatTabProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: '1',
@@ -44,9 +42,10 @@ export function ChatTab() {
   ]);
 
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSendMessage = () => {
-    if (!input.trim()) return;
+  const handleSendMessage = async () => {
+    if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -57,20 +56,35 @@ export function ChatTab() {
 
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
+    setIsLoading(true);
 
-    // Simulate AI response with context awareness
-    setTimeout(() => {
-      // Select a random context-aware response
-      const randomResponse = contextAwareResponses[Math.floor(Math.random() * contextAwareResponses.length)];
+    try {
+      // Send message to backend
+      const response = await api.chat.sendMessage(projectId, userMessage.content);
       
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
-        content: randomResponse,
+        content: response.response,
+        timestamp: new Date(response.timestamp),
+      };
+      
+      setMessages((prev) => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Failed to send message:', error);
+      
+      // Show error message
+      const errorResponse: Message = {
+        id: (Date.now() + 1).toString(),
+        role: 'assistant',
+        content: 'Sorry, I encountered an error processing your message. Please try again.',
         timestamp: new Date(),
       };
-      setMessages((prev) => [...prev, aiResponse]);
-    }, 1000);
+      
+      setMessages((prev) => [...prev, errorResponse]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -130,6 +144,20 @@ export function ChatTab() {
                 )}
               </div>
             ))}
+            {isLoading && (
+              <div className="flex space-x-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 bg-gray-600">
+                  <Bot className="h-4 w-4 text-blue-400" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="text-sm text-gray-400">AI Assistant</div>
+                  <div className="flex items-center space-x-2">
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
+                    <span className="text-gray-400">Thinking...</span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </ScrollArea>
       </div>
@@ -156,6 +184,7 @@ export function ChatTab() {
                 onKeyPress={handleKeyPress}
                 placeholder="Ask me anything about your data..."
                 className="bg-transparent border-none text-[#ECECF1] placeholder-gray-400 focus:ring-0 focus:outline-none p-0 h-auto"
+                disabled={isLoading}
               />
             </div>
 
