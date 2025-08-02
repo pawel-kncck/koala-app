@@ -17,6 +17,7 @@ import platform
 from code_executor import CodeExecutor
 from subprocess_executor import SubprocessExecutor
 from data_inspector import DataInspector
+from llm_service import LLMService
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -61,6 +62,9 @@ except:
 
 # Initialize data inspector
 data_inspector = DataInspector(uploads_dir=UPLOAD_DIR)
+
+# Initialize LLM service
+llm_service = LLMService()
 
 # Models
 class Project(BaseModel):
@@ -315,10 +319,10 @@ async def update_context(project_id: str, context: str = Form(...)):
     
     return {"message": "Context updated successfully", "context": context_data}
 
-# Chat endpoint (basic implementation for Phase 2)
+# Chat endpoint with real LLM and code execution
 @app.post("/api/projects/{project_id}/chat")
 async def chat(project_id: str, message: ChatMessage):
-    """Send a message to the AI assistant"""
+    """Send a message to the AI assistant with data analysis capabilities"""
     if project_id not in projects_db:
         raise HTTPException(status_code=404, detail="Project not found")
     
@@ -327,21 +331,102 @@ async def chat(project_id: str, message: ChatMessage):
     if project_id in contexts_db:
         context = contexts_db[project_id]['content']
     
-    # For Phase 2, we'll return a mock response that includes the context
-    # In Phase 3, this will be connected to an actual LLM
-    mock_response = f"I understand you're asking about: '{message.message}'. "
+    # Get data schema for the project
+    schema_info = await get_project_data_schema(project_id)
     
-    if context:
-        mock_response += f"Based on the context you provided about {context[:100]}..., "
-        mock_response += "I can help you analyze your data. In the next phase, I'll be able to access your uploaded files and provide real insights."
-    else:
-        mock_response += "Please provide some context about your project in the Context tab so I can give you more relevant insights."
+    # Check if LLM service is available
+    if not llm_service.client:
+        return {
+            "response": "AI service is not configured. Please set up your OpenAI API key.",
+            "timestamp": datetime.now(),
+            "used_context": False,
+            "executed_code": False
+        }
     
-    return {
-        "response": mock_response,
-        "timestamp": datetime.now(),
-        "used_context": bool(context)
-    }
+    try:
+        # Prepare data information for LLM
+        data_info = {}
+        if schema_info['files']:
+            for filename, file_schema in schema_info['files'].items():
+                var_name = filename.replace('.csv', '').replace('.xlsx', '').replace('.xls', '')
+                var_name = var_name.replace('-', '_').replace(' ', '_')
+                data_info[var_name] = {
+                    'description': file_schema['description'],
+                    'columns': file_schema['columns'],
+                    'shape': file_schema['shape']
+                }
+        
+        # Generate pandas code
+        success, generated_code = llm_service.generate_pandas_code(
+            query=message.message,
+            context=context,
+            data_info=data_info
+        )
+        
+        if not success:
+            return {
+                "response": f"I couldn't generate code for your query: {generated_code}",
+                "timestamp": datetime.now(),
+                "used_context": bool(context),
+                "executed_code": False
+            }
+        
+        # Execute the generated code
+        execution_request = CodeExecutionRequest(
+            code=generated_code,
+            project_id=project_id
+        )
+        
+        execution_result = await execute_code(project_id, execution_request)
+        
+        # Format the response based on execution results
+        if execution_result["success"]:
+            # Use LLM to format results as insights
+            insight = llm_service.format_results_as_insight(
+                query=message.message,
+                results=execution_result.get("results", {}),
+                context=context
+            )
+            
+            response_data = {
+                "response": insight,
+                "timestamp": datetime.now(),
+                "used_context": bool(context),
+                "executed_code": True,
+                "code": generated_code,
+                "execution_output": execution_result.get("output", ""),
+                "results": execution_result.get("results", {})
+            }
+            
+            # Add plot URLs if any were generated
+            if "__plots" in execution_result.get("results", {}):
+                response_data["plots"] = execution_result["results"]["__plots"]["data"]
+            
+            return response_data
+        else:
+            # Execution failed
+            error_msg = execution_result.get("error", "Unknown error")
+            traceback = execution_result.get("traceback", "")
+            
+            return {
+                "response": f"I generated code but encountered an error during execution:\n\n{error_msg}",
+                "timestamp": datetime.now(),
+                "used_context": bool(context),
+                "executed_code": True,
+                "code": generated_code,
+                "error": error_msg,
+                "traceback": traceback
+            }
+            
+    except Exception as e:
+        logger.error(f"Chat endpoint error: {str(e)}")
+        return {
+            "response": f"An error occurred while processing your request: {str(e)}",
+            "timestamp": datetime.now(),
+            "used_context": bool(context),
+            "executed_code": False,
+            "error": str(e)
+        }
 
 # Code execution endpoint
 @app.post("/api/projects/{project_id}/execute")

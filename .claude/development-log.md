@@ -296,3 +296,35 @@ def generate_pandas_code(self, query: str, context: str, data_info: Dict) -> Tup
 
 ---
 EOF < /dev/null
+#### [10:25] - Implement data schema inspection for uploaded files
+**Commit**: `33ed574` - `feat(backend): implement data schema inspection for uploaded files`
+**Files Modified**: 
+- `backend/data_inspector.py` - Data inspection service
+- `backend/main.py` - Added schema endpoints
+
+**Details**:
+- Created DataInspector class for comprehensive file analysis
+- Extracts detailed column information:
+  - Data types (numeric, text, datetime, boolean)
+  - Statistics (min, max, mean, unique values)
+  - Data quality metrics (null counts, cardinality)
+- Generates insights about data quality issues
+- Natural language descriptions of datasets
+- Two new endpoints:
+  - GET /api/projects/{project_id}/files/{file_id}/schema
+  - GET /api/projects/{project_id}/schema
+
+**Code Snippet**:
+```python
+# Column type detection and statistics
+if pd.api.types.is_numeric_dtype(col_data):
+    col_info['stats'] = {
+        'min': float(col_data.min()),
+        'max': float(col_data.max()),
+        'mean': float(col_data.mean()),
+        'median': float(col_data.median())
+    }
+```
+
+---
+EOF < /dev/null
