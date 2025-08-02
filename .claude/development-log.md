@@ -609,4 +609,17 @@ backend/.env.example  # Only safe example file tracked
 - Used RLIMIT_DATA as fallback for memory limits on macOS
 - Wrapped all resource limit setting in try/except for robustness
 
+#### [23:45] - Fix subprocess executor builtins for pandas compatibility
+**Commit**: `8fb008c` - `fix(backend): fix subprocess executor builtins for pandas compatibility`
+**Files Modified**: 
+- `backend/subprocess_executor.py` - Added essential builtins for pandas
+
+**Details**:
+- Chat failing with "ImportError: __import__ not found"
+- Subprocess executor was removing __import__ which pandas needs
+- Added __import__, hasattr, getattr, setattr to safe builtins
+- Added property, staticmethod, classmethod for class definitions
+- Added common exception types needed by pandas
+- Fixed duplicate import builtins statement
+
 ---
