@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { MainContent } from './components/MainContent';
-import { AuthProvider, useAuth } from './frontend/src/contexts/AuthContext';
-import { LoginPage } from './frontend/src/pages/LoginPage';
-import { RegisterPage } from './frontend/src/pages/RegisterPage';
-import { ProtectedRoute } from './frontend/src/components/ProtectedRoute';
+import { AuthProvider, useAuth } from './src/contexts/AuthContext';
+import { LoginPage } from './src/pages/LoginPage';
+import { RegisterPage } from './src/pages/RegisterPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 import api from './src/services/api';
 
 export interface Project {

@@ -5,7 +5,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
-import { useAuth } from '../frontend/src/contexts/AuthContext';
+import { useAuth } from '../src/contexts/AuthContext';
 
 import { Project } from '../App';
 
