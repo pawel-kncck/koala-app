@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { Plus, ChevronLeft, ChevronRight, ChevronDown, User, Settings, BookOpen, LogOut } from 'lucide-react';
+import { Plus, ChevronLeft, ChevronRight, ChevronDown, User, Settings, BookOpen, LogOut, Folder } from 'lucide-react';
 import { Button } from './ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 
 interface SidebarProps {
   collapsed: boolean;
@@ -10,20 +13,35 @@ interface SidebarProps {
   onProjectSelect: (project: string) => void;
 }
 
-const projects = [
-  'Data Analysis Project',
-  'Customer Insights',
-  'Sales Dashboard',
-  'ML Model Training',
-  'Market Research',
+interface Project {
+  id: string;
+  name: string;
+  createdAt: Date;
+}
+
+const initialProjects: Project[] = [
+  { id: '1', name: 'Q3 Sales Analysis', createdAt: new Date('2024-01-15') },
+  { id: '2', name: 'Customer Insights', createdAt: new Date('2024-01-10') },
+  { id: '3', name: 'Market Research 2024', createdAt: new Date('2024-01-05') },
 ];
 
 export function Sidebar({ collapsed, onToggle, currentProject, onProjectSelect }: SidebarProps) {
-  const [newProject, setNewProject] = useState('');
+  const [projects, setProjects] = useState<Project[]>(initialProjects);
+  const [isNewProjectDialogOpen, setIsNewProjectDialogOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState('');
 
   const handleNewProject = () => {
-    // For now, just show an alert - in a real app this would create a new project
-    alert('New project functionality would be implemented here');
+    if (newProjectName.trim()) {
+      const newProject: Project = {
+        id: Date.now().toString(),
+        name: newProjectName.trim(),
+        createdAt: new Date()
+      };
+      setProjects([newProject, ...projects]);
+      onProjectSelect(newProject.name);
+      setNewProjectName('');
+      setIsNewProjectDialogOpen(false);
+    }
   };
 
   const handleSettings = () => {
@@ -31,7 +49,7 @@ export function Sidebar({ collapsed, onToggle, currentProject, onProjectSelect }
   };
 
   const handleLearnMore = () => {
-    alert('Learn more functionality would be implemented here');
+    window.open('https://docs.anthropic.com', '_blank');
   };
 
   const handleLogout = () => {
@@ -55,25 +73,25 @@ export function Sidebar({ collapsed, onToggle, currentProject, onProjectSelect }
         <Button
           variant="ghost"
           size="icon"
-          onClick={handleNewProject}
+          onClick={() => setIsNewProjectDialogOpen(true)}
           className="text-[#ECECF1] hover:bg-gray-700 mb-4"
         >
           <Plus className="h-4 w-4" />
         </Button>
 
         <div className="flex-1 flex flex-col space-y-2">
-          {projects.map((project, index) => (
+          {projects.map((project) => (
             <Button
-              key={project}
+              key={project.id}
               variant="ghost"
               size="icon"
-              onClick={() => onProjectSelect(project)}
+              onClick={() => onProjectSelect(project.name)}
               className={`text-[#ECECF1] hover:bg-gray-700 text-xs ${
-                currentProject === project ? 'bg-gray-700' : ''
+                currentProject === project.name ? 'bg-gray-700' : ''
               }`}
-              title={project}
+              title={project.name}
             >
-              {project.split(' ').map(word => word[0]).join('').substring(0, 2)}
+              <Folder className="h-4 w-4" />
             </Button>
           ))}
         </div>
@@ -125,7 +143,7 @@ export function Sidebar({ collapsed, onToggle, currentProject, onProjectSelect }
       <div className="flex-shrink-0 p-4 border-b border-gray-600">
         <div className="flex items-center justify-between mb-4">
           <Button
-            onClick={handleNewProject}
+            onClick={() => setIsNewProjectDialogOpen(true)}
             className="flex-1 bg-transparent border border-gray-600 text-[#ECECF1] hover:bg-gray-700"
           >
             <Plus className="h-4 w-4 mr-2" />
@@ -147,14 +165,15 @@ export function Sidebar({ collapsed, onToggle, currentProject, onProjectSelect }
         <div className="space-y-1">
           {projects.map((project) => (
             <Button
-              key={project}
+              key={project.id}
               variant="ghost"
               className={`w-full justify-start text-left text-[#ECECF1] hover:bg-gray-700 ${
-                currentProject === project ? 'bg-gray-700' : ''
+                currentProject === project.name ? 'bg-gray-700' : ''
               }`}
-              onClick={() => onProjectSelect(project)}
+              onClick={() => onProjectSelect(project.name)}
             >
-              <div className="truncate">{project}</div>
+              <Folder className="h-4 w-4 mr-2 flex-shrink-0" />
+              <div className="truncate">{project.name}</div>
             </Button>
           ))}
         </div>
@@ -203,6 +222,52 @@ export function Sidebar({ collapsed, onToggle, currentProject, onProjectSelect }
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {/* New Project Dialog */}
+      <Dialog open={isNewProjectDialogOpen} onOpenChange={setIsNewProjectDialogOpen}>
+        <DialogContent className="bg-[#343541] border-gray-600 text-[#ECECF1]">
+          <DialogHeader>
+            <DialogTitle>Create New Project</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Enter a name for your new data analysis project
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="project-name" className="text-sm text-gray-300">
+                Project Name
+              </Label>
+              <Input
+                id="project-name"
+                value={newProjectName}
+                onChange={(e) => setNewProjectName(e.target.value)}
+                placeholder="e.g., Q3 Sales Analysis"
+                className="mt-1 bg-gray-700 border-gray-600 text-[#ECECF1] placeholder-gray-400"
+                onKeyPress={(e) => e.key === 'Enter' && handleNewProject()}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setIsNewProjectDialogOpen(false);
+                setNewProjectName('');
+              }}
+              className="text-gray-400 hover:text-[#ECECF1] hover:bg-gray-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleNewProject}
+              disabled={!newProjectName.trim()}
+              className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+            >
+              Create Project
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

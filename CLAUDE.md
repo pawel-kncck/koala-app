@@ -21,59 +21,55 @@ npm run preview
 - **Frontend**: React 18 with TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Build Tool**: Vite
-- **Backend**: Supabase Edge Functions (Deno runtime)
-- **Database**: Supabase KV store (PostgreSQL table: `kv_store_b4e89827`)
-- **Authentication**: Supabase Auth
+- **Backend**: Not yet implemented (planned: Python/FastAPI per specifications)
+- **Database**: Not yet implemented (planned: PostgreSQL)
+- **Infrastructure**: Development server runs on port 8080
 
 ### Project Structure
 
-The application is an expense tracker with the following key architectural patterns:
+The application is Koala, an AI-powered data analysis platform currently in Phase 1 ("Ugly Duckling") of the MVP development. The architecture follows a clean, chat-style interface design:
 
-1. **Main Entry Point**: `App.tsx` handles authentication state and routing between auth views (login/signup) and authenticated views (dashboard/analytics)
-
-2. **Authentication Flow**:
-   - Custom signup endpoint: `POST /make-server-b4e89827/signup` (creates users with auto-confirmed emails)
-   - Login uses Supabase Auth directly
-   - Access tokens are passed to all authenticated API calls
-
-3. **Data Storage Pattern**:
-   - Expenses stored in KV store with key format: `expense:{userId}:{expenseId}`
-   - Each expense includes: id, userId, amount, category, date, description, createdAt, isPlaceholder
-   - Placeholder data is automatically generated for new users and removed on first real expense
-
-4. **API Endpoints** (all under `/make-server-b4e89827/`):
-   - `GET /expenses` - Fetches user expenses (auto-generates placeholders if empty)
-   - `POST /expenses` - Creates expense (removes placeholders on first real expense)
-   - `PUT /expenses/:id` - Updates expense
-   - `DELETE /expenses/:id` - Deletes expense
-
-5. **Component Architecture**:
-   - UI components from shadcn/ui in `components/ui/`
-   - Page components: `DashboardPage.tsx`, `AnalyticsPage.tsx`
-   - Feature components: `ExpenseList.tsx`, `AddExpenseModal.tsx`, `EditExpenseModal.tsx`
-   - Layout: `Sidebar.tsx` for navigation
-
-6. **Path Aliases**: `@/` maps to project root (configured in tsconfig.json and vite.config.ts)
+1. **Main Entry Point**: `App.tsx` manages the main application state including sidebar collapse, current project, and active tab
+2. **Layout Components**:
+   - `Sidebar.tsx`: Left navigation with project list and user profile
+   - `MainContent.tsx`: Right content area with tab navigation
+3. **Core Feature Tabs**:
+   - `DataStudioTab.tsx`: File upload and data management
+   - `ContextTab.tsx`: Business context definition for AI
+   - `ChatTab.tsx`: Conversational data analysis interface
+4. **UI Components**: Located in `components/ui/` using shadcn/ui library
+5. **Path Aliases**: `@/` maps to project root
 
 ### Key Implementation Details
 
-- **Placeholder System**: When database is empty, 6 sample expenses are generated with helpful descriptions
-- **Categories**: Fixed list - Food, Transport, Utilities, Entertainment, Healthcare, Shopping, Other
-- **Visual Indicators**: Placeholder expenses shown with blue background and "Sample" label
-- **Server Functions**: Located in `supabase/functions/server/` using Hono framework
-- **KV Store Utilities**: `kv_store.tsx` provides get/set/delete operations with prefix search support
+- **Dark Theme**: Consistent dark mode styling using Tailwind classes
+- **Mock Data**: Currently using static mock data and simulated interactions
+- **Chat Interface**: Styled similar to modern AI chat applications with user/assistant message bubbles
+- **File Upload**: Mock implementation ready for backend integration
 
-### Environment Configuration
+### Current MVP Phase Status
 
-The app expects Supabase project configuration in `utils/supabase/info.tsx`:
-- `projectId`: Supabase project ID
-- `publicAnonKey`: Supabase public anonymous key
+**Phase 1 "Ugly Duckling" (In Progress)**:
+- ✅ Clean two-column layout
+- ✅ Collapsible sidebar
+- ✅ Project view with tab navigation
+- ✅ Dark theme implementation
+- ✅ Basic components for all three tabs
 
-Server functions require environment variables:
-- `SUPABASE_URL`
-- `SUPABASE_SERVICE_ROLE_KEY`
+**Next Phases** (per `specs/implementation_plan.md`):
+- Phase 2 "Baby Shark": Backend implementation for upload, context, and basic chat
+- Phase 3 "Growing Panda": Data-aware AI with Pandas integration
+- Phase 4 "Mysterious Owl": Proactive insights and automated analysis
+- Phase 5: Production deployment
 
-## Core Requirements
+### Important Notes
+
+1. **No Backend Yet**: All data operations are currently mocked in the frontend
+2. **CSV Parsing**: Per specifications, CSV parsing should be moved to backend to fix encoding issues
+3. **Security**: Code execution for data analysis will require secure sandboxing in Phase 3
+4. **Context Storage**: Database schema needs `context` field added to projects table in Phase 2
+
+## Core Requirements from Original CLAUDE.md
 
 ### 1. Commit Strategy - CRITICAL
 **You MUST make frequent, granular commits throughout each session.**
@@ -260,7 +256,7 @@ When encountering a critical bug:
 ```markdown
 # Development Log
 
-Project: Expense Tracker
+Project: Koala - AI Data Analysis Platform
 Started: [Date]
 
 ## Session Guidelines
@@ -287,7 +283,7 @@ Started: [Date]
 ```markdown
 # Debugging Log
 
-Project: Expense Tracker
+Project: Koala - AI Data Analysis Platform
 Purpose: Track all debugging sessions and their resolutions
 
 ## Debugging Protocol

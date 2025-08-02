@@ -2,7 +2,7 @@ Of course. Based on the comprehensive context from the provided files and our pr
 
 ---
 
-### **Jabiru MVP: Phased Implementation Plan**
+### **Koala MVP: Phased Implementation Plan**
 
 **Version:** 2.0
 **Objective:** To iteratively build and validate the core value proposition of an AI-powered, context-aware data analysis application. This plan replaces the previous linear roadmap with an agile, phased approach focused on delivering a testable product as quickly as possible.
