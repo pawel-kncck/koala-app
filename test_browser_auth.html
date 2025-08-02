@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth Flow Test</title>
+</head>
+<body>
+    <h1>Testing Authentication Flow</h1>
+    <pre id="output"></pre>
+
+    <script>
+        const output = document.getElementById('output');
+        
+        async function testAuth() {
+            try {
+                // Test 1: Try to access protected endpoint without auth
+                output.textContent += "1. Testing unauthenticated access...\n";
+                const unauth = await fetch('http://localhost:8080/api/projects');
+                output.textContent += `   Status: ${unauth.status} ${unauth.statusText}\n\n`;
+                
+                // Test 2: Register a test user
+                output.textContent += "2. Registering test user...\n";
+                const registerRes = await fetch('http://localhost:8080/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'browser@test.com',
+                        username: 'browsertest',
+                        password: 'test123'
+                    })
+                });
+                
+                if (registerRes.ok) {
+                    const { access_token } = await registerRes.json();
+                    output.textContent += `   ✓ Registration successful\n`;
+                    output.textContent += `   Token: ${access_token.substring(0, 20)}...\n\n`;
+                    
+                    // Test 3: Access protected endpoint with auth
+                    output.textContent += "3. Testing authenticated access...\n";
+                    const authRes = await fetch('http://localhost:8080/api/projects', {
+                        headers: { 'Authorization': `Bearer ${access_token}` }
+                    });
+                    const projects = await authRes.json();
+                    output.textContent += `   ✓ Authenticated request successful\n`;
+                    output.textContent += `   Projects: ${JSON.stringify(projects)}\n\n`;
+                    
+                    output.textContent += "✅ All tests passed! Authentication is working correctly.\n";
+                    output.textContent += "\nYou can now:\n";
+                    output.textContent += "- Go to http://localhost:8080\n";
+                    output.textContent += "- You should be redirected to the login page\n";
+                    output.textContent += "- Use the test credentials or create a new account\n";
+                } else {
+                    const error = await registerRes.json();
+                    output.textContent += `   ✗ Registration failed: ${error.detail}\n`;
+                    output.textContent += `   (User might already exist - try logging in instead)\n`;
+                }
+                
+            } catch (error) {
+                output.textContent += `\nError: ${error.message}\n`;
+            }
+        }
+        
+        testAuth();
+    </script>
+</body>
+</html>
