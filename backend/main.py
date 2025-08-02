@@ -10,6 +10,16 @@ from datetime import datetime
 import pandas as pd
 import chardet
 from pathlib import Path
+import logging
+import platform
+
+# Import code executors
+from code_executor import CodeExecutor
+from subprocess_executor import SubprocessExecutor
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Koala API", version="0.1.0")
 
@@ -33,6 +43,21 @@ projects_db = {}
 files_db = {}
 contexts_db = {}
 
+# Initialize code executor (try Docker first, fallback to subprocess)
+code_executor = None
+try:
+    # Check if Docker is available
+    import subprocess
+    result = subprocess.run(['docker', '--version'], capture_output=True)
+    if result.returncode == 0:
+        code_executor = CodeExecutor()
+        logger.info("Using Docker-based code executor")
+    else:
+        raise Exception("Docker not available")
+except:
+    code_executor = SubprocessExecutor()
+    logger.info("Using subprocess-based code executor (fallback)")
+
 # Models
 class Project(BaseModel):
     id: str
@@ -55,6 +80,10 @@ class Context(BaseModel):
 class ChatMessage(BaseModel):
     project_id: str
     message: str
+
+class CodeExecutionRequest(BaseModel):
+    code: str
+    project_id: str
 
 # API Routes
 
@@ -251,6 +280,100 @@ async def chat(project_id: str, message: ChatMessage):
         "response": mock_response,
         "timestamp": datetime.now(),
         "used_context": bool(context)
+    }
+
+# Code execution endpoint
+@app.post("/api/projects/{project_id}/execute")
+async def execute_code(project_id: str, request: CodeExecutionRequest):
+    """Execute Python code in a secure sandbox environment"""
+    if project_id not in projects_db:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Validate the code first
+    is_valid, error_msg = code_executor.validate_code(request.code)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=f"Code validation failed: {error_msg}")
+    
+    # Get all data files for this project
+    data_files = {}
+    if project_id in files_db:
+        for file_id, file_info in files_db[project_id].items():
+            # Use the filename without project prefix as variable name
+            var_name = file_info['filename'].replace('.csv', '').replace('.xlsx', '').replace('.xls', '')
+            var_name = var_name.replace('-', '_').replace(' ', '_')  # Make valid Python variable
+            # Store relative path from uploads directory
+            file_path = Path(file_info['file_path']).name
+            data_files[var_name] = file_path
+    
+    # Log execution attempt
+    logger.info(f"Executing code for project {project_id} with {len(data_files)} data files")
+    
+    try:
+        # Execute the code
+        success, output, result_data = code_executor.execute_code(request.code, data_files)
+        
+        if success:
+            return {
+                "success": True,
+                "output": output,
+                "results": result_data or {},
+                "available_datasets": list(data_files.keys()),
+                "timestamp": datetime.now()
+            }
+        else:
+            # Check if it's an error result
+            if result_data and '__error' in result_data:
+                error_info = result_data['__error']
+                return {
+                    "success": False,
+                    "error": error_info.get('error', 'Unknown error'),
+                    "traceback": error_info.get('traceback', ''),
+                    "output": output,
+                    "timestamp": datetime.now()
+                }
+            else:
+                return {
+                    "success": False,
+                    "error": output,
+                    "output": output,
+                    "timestamp": datetime.now()
+                }
+                
+    except Exception as e:
+        logger.error(f"Code execution error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Code execution failed: {str(e)}")
+
+# Health check endpoint for code execution
+@app.get("/api/execute/health")
+async def code_execution_health():
+    """Check if code execution service is available"""
+    executor_type = "docker" if isinstance(code_executor, CodeExecutor) else "subprocess"
+    
+    # Try to build Docker image if using Docker executor
+    if isinstance(code_executor, CodeExecutor):
+        try:
+            if code_executor.build_sandbox_image():
+                return {
+                    "status": "healthy",
+                    "executor_type": executor_type,
+                    "docker_available": True,
+                    "message": "Code execution service is ready"
+                }
+            else:
+                return {
+                    "status": "warning",
+                    "executor_type": "subprocess",
+                    "docker_available": False,
+                    "message": "Docker image build failed, using subprocess fallback"
+                }
+        except:
+            pass
+    
+    return {
+        "status": "healthy",
+        "executor_type": executor_type,
+        "docker_available": False,
+        "message": "Code execution service is ready (subprocess mode)"
     }
 
 if __name__ == "__main__":

@@ -208,3 +208,31 @@ docker_cmd = [
 
 ---
 EOF < /dev/null
+#### [10:10] - Create Python subprocess sandboxing with restricted permissions
+**Commit**: `925a21f` - `feat(backend): create Python subprocess sandboxing with restricted permissions`
+**Files Modified**: 
+- `backend/subprocess_executor.py` - SubprocessExecutor class for non-Docker environments
+
+**Details**:
+- Implemented SubprocessExecutor as fallback when Docker is not available
+- Security measures implemented:
+  - Resource limits (memory, CPU, file size, process count)
+  - Restricted environment variables
+  - Dangerous modules removal before execution
+  - Dangerous builtins override
+  - Limited output size for results
+- Works on Unix systems with resource module
+- Validates code for forbidden patterns
+
+**Code Snippet**:
+```python
+# Resource limits (Unix only)
+def _set_resource_limits(self):
+    memory_bytes = self.memory_limit_mb * 1024 * 1024
+    resource.setrlimit(resource.RLIMIT_AS, (memory_bytes, memory_bytes))
+    resource.setrlimit(resource.RLIMIT_CPU, (self.timeout + 5, self.timeout + 5))
+    resource.setrlimit(resource.RLIMIT_NPROC, (1, 1))
+```
+
+---
+EOF < /dev/null
