@@ -21,13 +21,16 @@ npm run preview
 - **Frontend**: React 18 with TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Build Tool**: Vite
-- **Backend**: Not yet implemented (planned: Python/FastAPI per specifications)
-- **Database**: Not yet implemented (planned: PostgreSQL)
-- **Infrastructure**: Development server runs on port 8080
+- **Backend**: Python/FastAPI with secure code execution
+- **LLM**: OpenAI GPT-4 for natural language to code generation
+- **Data Processing**: Pandas, NumPy, Matplotlib in sandboxed environment
+- **Security**: Docker containers or restricted subprocess for code execution
+- **Database**: In-memory storage (PostgreSQL ready)
+- **Infrastructure**: Frontend on port 8080, Backend on port 8000
 
 ### Project Structure
 
-The application is Koala, an AI-powered data analysis platform currently in Phase 1 ("Ugly Duckling") of the MVP development. The architecture follows a clean, chat-style interface design:
+The application is Koala, an AI-powered data analysis platform that has completed Phase 3 ("Growing Panda") of the MVP development. The architecture follows a clean, chat-style interface design with full backend integration:
 
 1. **Main Entry Point**: `App.tsx` manages the main application state including sidebar collapse, current project, and active tab
 2. **Layout Components**:
@@ -43,31 +46,54 @@ The application is Koala, an AI-powered data analysis platform currently in Phas
 ### Key Implementation Details
 
 - **Dark Theme**: Consistent dark mode styling using Tailwind classes
-- **Mock Data**: Currently using static mock data and simulated interactions
-- **Chat Interface**: Styled similar to modern AI chat applications with user/assistant message bubbles
-- **File Upload**: Mock implementation ready for backend integration
+- **Backend Integration**: Full API integration with all frontend components
+- **Chat Interface**: Real AI-powered chat with natural language data analysis
+- **File Upload**: Working file upload with CSV/Excel support and encoding detection
+- **Code Execution**: Secure sandboxed execution using Docker or subprocess
+- **Data Analysis**: Natural language queries converted to pandas code automatically
+- **Error Handling**: Comprehensive error handling with user-friendly messages
 
 ### Current MVP Phase Status
 
-**Phase 1 "Ugly Duckling" (In Progress)**:
+**Phase 1 "Ugly Duckling" (✅ COMPLETED)**:
 - ✅ Clean two-column layout
 - ✅ Collapsible sidebar
 - ✅ Project view with tab navigation
 - ✅ Dark theme implementation
 - ✅ Basic components for all three tabs
 
+**Phase 2 "Baby Shark" (✅ COMPLETED)**:
+- ✅ Backend API structure with FastAPI
+- ✅ File upload, listing, preview, and deletion endpoints
+- ✅ CSV parsing with encoding detection moved to backend
+- ✅ Context management endpoints (save/retrieve)
+- ✅ Basic chat endpoint (mock implementation)
+- ✅ Frontend integration with all backend endpoints
+
+**Phase 3 "Growing Panda" (✅ COMPLETED - 2025-08-02)**:
+- ✅ Secure Docker-based code execution environment
+- ✅ Python subprocess sandboxing as fallback
+- ✅ Resource limits (CPU, memory, timeout) for safe execution
+- ✅ Restricted imports (only pandas, numpy, matplotlib allowed)
+- ✅ Code execution API endpoint with validation
+- ✅ OpenAI GPT-4 integration for LLM functionality
+- ✅ Data schema inspection for all uploaded files
+- ✅ LLM-to-Pandas code generation from natural language
+- ✅ Enhanced chat endpoint with real data analysis
+- ✅ Result formatting as natural language insights
+- ✅ Comprehensive error handling and logging
+
 **Next Phases** (per `specs/implementation_plan.md`):
-- Phase 2 "Baby Shark": Backend implementation for upload, context, and basic chat
-- Phase 3 "Growing Panda": Data-aware AI with Pandas integration
 - Phase 4 "Mysterious Owl": Proactive insights and automated analysis
 - Phase 5: Production deployment
 
 ### Important Notes
 
-1. **No Backend Yet**: All data operations are currently mocked in the frontend
-2. **CSV Parsing**: Per specifications, CSV parsing should be moved to backend to fix encoding issues
-3. **Security**: Code execution for data analysis will require secure sandboxing in Phase 3
-4. **Context Storage**: Database schema needs `context` field added to projects table in Phase 2
+1. **Backend Fully Implemented**: FastAPI backend with all core functionality
+2. **Security**: Code execution uses Docker containers or restricted subprocess
+3. **LLM Integration**: Requires OPENAI_API_KEY environment variable
+4. **Data Analysis**: Natural language queries are converted to pandas code and executed securely
+5. **In-Memory Storage**: Currently using in-memory databases, ready for PostgreSQL migration
 
 ## Core Requirements from Original CLAUDE.md
 
