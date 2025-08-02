@@ -130,7 +130,7 @@ Types: feat, fix, refactor, test, docs, style, chore, config
 
 ### 2. Comprehensive Logging System - MANDATORY
 
-**You MUST maintain two separate log files in the `.claude/` directory:**
+**You MUST maintain three separate log files in the `.claude/` directory:**
 
 #### A. Development Log: `.claude/development-log.md`
 Update this log IMMEDIATELY after every code change or commit.
@@ -212,6 +212,38 @@ Update this log whenever debugging or investigating issues.
 ---
 ```
 
+#### C. Decision Log: `.claude/decision-log.md`
+Update this log whenever asking the human for permission or a decision.
+
+```markdown
+# Decision Log
+
+This log tracks all instances where Claude asks the human for permission or a decision before taking an action.
+
+## Format
+
+Each entry contains:
+- **Timestamp**: Local time when the question was asked
+- **Question**: The exact question asked to the human
+- **Intended Action**: What Claude wanted to do
+- **Reason for Asking**: Why permission was needed
+- **Human Decision**: The human's response
+- **Settings to Prevent**: What settings.json configuration would allow autonomous action
+
+---
+
+## Log Entries
+
+### [DATE TIME]
+**Question**: "Would you like me to run `npm install` to install the new dependencies?"
+**Intended Action**: Execute npm install command
+**Reason for Asking**: Installing new packages modifies node_modules and package-lock.json
+**Human Decision**: Yes/No/Alternative action
+**Settings to Prevent**: Add to allowed_commands: ["npm install"]
+
+---
+```
+
 ### 3. Log Management Rules
 
 1. **Create logs if they don't exist** - Check for `.claude/` directory and create it if needed
@@ -262,7 +294,25 @@ When encountering a critical bug:
 4. **Test incrementally** - Commit working states even during debugging
 5. **Log every attempt** - Failed attempts are valuable information
 
-### 7. Quality Checks Before Each Commit
+### 7. Decision Log Protocol
+
+When asking for permission or a decision:
+1. **Update decision log IMMEDIATELY** after asking
+2. **Include the exact question** you asked the human
+3. **Document what you intended to do** before asking
+4. **Explain why permission was needed** (e.g., destructive action, new dependency, etc.)
+5. **Record the human's response** verbatim
+6. **Note any settings.json configuration** that would allow autonomous action in the future
+
+Common scenarios requiring permission:
+- Installing new packages or dependencies
+- Running potentially destructive commands (rm, database drops, etc.)
+- Making significant architectural changes
+- Creating new files outside of explicit requests
+- Modifying configuration files
+- Running commands that weren't explicitly requested
+
+### 8. Quality Checks Before Each Commit
 
 - [ ] Code runs without errors
 - [ ] Tests pass (if applicable)
@@ -322,6 +372,29 @@ Purpose: Track all debugging sessions and their resolutions
 ---
 
 ## Session: [DATE TIME]
+
+---
+```
+
+### Initial Decision Log Template
+```markdown
+# Decision Log
+
+This log tracks all instances where Claude asks the human for permission or a decision before taking an action.
+
+## Format
+
+Each entry contains:
+- **Timestamp**: Local time when the question was asked
+- **Question**: The exact question asked to the human
+- **Intended Action**: What Claude wanted to do
+- **Reason for Asking**: Why permission was needed
+- **Human Decision**: The human's response
+- **Settings to Prevent**: What settings.json configuration would allow autonomous action
+
+---
+
+## Log Entries
 
 ---
 ```

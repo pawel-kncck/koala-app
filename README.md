@@ -132,6 +132,7 @@ This project includes specific configuration for Claude Code to ensure consisten
 mkdir -p .claude
 touch .claude/development-log.md
 touch .claude/debugging-log.md
+touch .claude/decision-log.md
 ```
 
 3. **Initialize log files** with the templates provided in CLAUDE.md
@@ -164,7 +165,7 @@ Types: `feat`, `fix`, `refactor`, `test`, `docs`, `style`, `chore`, `config`
 
 #### 📝 Comprehensive Logging System (MANDATORY)
 
-Two log files must be maintained throughout development:
+Three log files must be maintained throughout development:
 
 1. **Development Log** (`.claude/development-log.md`):
 
@@ -176,6 +177,12 @@ Two log files must be maintained throughout development:
    - Documents all debugging sessions
    - Tracks symptoms, hypotheses, actions, and resolutions
    - Includes post-mortem lessons learned
+
+3. **Decision Log** (`.claude/decision-log.md`):
+   - Records ALL instances where Claude asks for permission or decisions
+   - Tracks what action was intended and why permission was needed
+   - Documents human decisions and settings to prevent future asks
+   - Helps identify patterns in permission requests
 
 #### Example Workflow
 
