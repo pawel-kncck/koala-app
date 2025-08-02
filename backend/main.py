@@ -345,6 +345,10 @@ async def preview_file(
         else:
             df = pd.read_excel(file_path, nrows=rows)
         
+        # Replace NaN and infinity values to make JSON serializable
+        df = df.replace([float('inf'), float('-inf')], None)
+        df = df.where(pd.notnull(df), None)
+        
         return {
             "columns": df.columns.tolist(),
             "data": df.to_dict('records'),
