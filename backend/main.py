@@ -671,8 +671,21 @@ async def execute_code_internal(project_id: str, request: ExecuteCode, files: Li
     
     # Execute code
     try:
-        result = code_executor.execute(request.code, data_files)
-        return result
+        success, output, result_data = code_executor.execute_code(request.code, data_files)
+        
+        if not success:
+            return {
+                "success": False,
+                "output": output,
+                "error": output,
+                "results": {}
+            }
+        
+        return {
+            "success": True,
+            "output": output,
+            "results": result_data or {}
+        }
     except Exception as e:
         logger.error(f"Code execution failed: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -785,11 +798,11 @@ async def health_check():
 async def execute_health():
     """Check code execution service health."""
     try:
-        result = code_executor.execute("print('healthy')", {})
+        success, output, result_data = code_executor.execute_code("print('healthy')", {})
         return {
             "status": "healthy",
             "executor_type": "docker" if isinstance(code_executor, CodeExecutor) else "subprocess",
-            "test_output": result.get("output", "").strip()
+            "test_output": output if success else ""
         }
     except Exception as e:
         return {

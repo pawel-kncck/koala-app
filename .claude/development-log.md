@@ -479,3 +479,87 @@ backend/.env.example  # Only safe example file tracked
 ✅ **Repository is now safe to push to GitHub**
 
 ---
+
+## Session: 2025-08-02 21:00
+
+### Database Implementation and Decision Log System
+
+### Todo List:
+- [x] Implement PostgreSQL database with SQLAlchemy models
+- [x] Create authentication system with JWT tokens
+- [x] Fix frontend authentication UI and import errors
+- [x] Optimize file preview performance with pre-calculated cache
+- [x] Run security audit and clean git repository
+- [x] Create decision log system for permission tracking
+- [x] Add decision log instructions to README.md and CLAUDE.md
+
+### Changes:
+
+#### [21:00] - Database Implementation and Authentication
+**Commit**: Multiple commits during implementation
+**Files Modified**: 
+- `backend/models.py` - Created comprehensive database models
+- `backend/database.py` - Async database configuration with SQLite support
+- `backend/auth.py` - JWT authentication utilities
+- `backend/main.py` - Complete rewrite to use database storage
+- `requirements.txt` - Added SQLAlchemy, asyncpg, aiosqlite, etc.
+
+**Details**:
+- Implemented full database persistence replacing in-memory storage
+- Created models for User, Project, File, Context, ChatHistory
+- Implemented JWT-based authentication with bcrypt password hashing
+- Switched to SQLite for local development (PostgreSQL-ready)
+- All endpoints now use database transactions
+
+#### [21:30] - Frontend Authentication UI
+**Commit**: Multiple commits for UI implementation
+**Files Modified**: 
+- `src/contexts/AuthContext.tsx` - Authentication state management
+- `src/pages/LoginPage.tsx` - Modern login UI
+- `src/pages/RegisterPage.tsx` - Registration form
+- `src/components/ProtectedRoute.tsx` - Route protection
+- `App.tsx` - Authentication integration
+- `vite.config.ts` - Added API proxy configuration
+
+**Details**:
+- Created complete authentication flow with React Context
+- Fixed import errors by converting @/ aliases to relative paths
+- Added token persistence in localStorage
+- Implemented protected routes requiring authentication
+- All API calls now include Authorization header
+
+#### [22:00] - File Preview Performance Optimization
+**Commit**: Performance optimization commits
+**Files Modified**: 
+- `backend/models.py` - Added preview_data JSON column
+- `backend/main.py` - Modified upload to pre-calculate preview
+- File preview endpoint now serves cached data
+
+**Details**:
+- Identified performance issue: preview calculated on every request
+- Solution: Pre-calculate preview during upload and cache in database
+- Result: Preview loads instantly from cached JSON data
+- Added NaN/infinity handling for JSON compatibility
+
+#### [22:30] - Security Audit and Git Cleanup
+**Details**:
+- Removed koala.db from git tracking
+- Verified no exposed API keys or passwords
+- Created comprehensive security checklist
+- Repository verified clean before push
+
+#### [23:00] - Create Decision Log System
+**Commit**: `1278c73` - `docs(logging): add decision log system for tracking permission requests`
+**Files Modified**: 
+- `.claude/decision-log.md` - Initial decision log file
+- `README.md` - Added decision log to logging requirements
+- `CLAUDE.md` - Added decision log instructions and protocol
+
+**Details**:
+- Created third log file for tracking permission requests
+- Documents when Claude asks for decisions and why
+- Helps identify patterns in permission requests
+- Added instructions for maintaining decision log
+- Updated both README.md and CLAUDE.md with new requirements
+
+---

@@ -18,6 +18,7 @@ npm run preview
 ## Architecture Overview
 
 ### Tech Stack
+
 - **Frontend**: React 18 with TypeScript
 - **Styling**: Tailwind CSS with shadcn/ui components
 - **Build Tool**: Vite
@@ -56,6 +57,7 @@ The application is Koala, an AI-powered data analysis platform that has complete
 ### Current MVP Phase Status
 
 **Phase 1 "Ugly Duckling" (✅ COMPLETED)**:
+
 - ✅ Clean two-column layout
 - ✅ Collapsible sidebar
 - ✅ Project view with tab navigation
@@ -63,6 +65,7 @@ The application is Koala, an AI-powered data analysis platform that has complete
 - ✅ Basic components for all three tabs
 
 **Phase 2 "Baby Shark" (✅ COMPLETED)**:
+
 - ✅ Backend API structure with FastAPI
 - ✅ File upload, listing, preview, and deletion endpoints
 - ✅ CSV parsing with encoding detection moved to backend
@@ -71,6 +74,7 @@ The application is Koala, an AI-powered data analysis platform that has complete
 - ✅ Frontend integration with all backend endpoints
 
 **Phase 3 "Growing Panda" (✅ COMPLETED - 2025-08-02)**:
+
 - ✅ Secure Docker-based code execution environment
 - ✅ Python subprocess sandboxing as fallback
 - ✅ Resource limits (CPU, memory, timeout) for safe execution
@@ -84,6 +88,7 @@ The application is Koala, an AI-powered data analysis platform that has complete
 - ✅ Comprehensive error handling and logging
 
 **Next Phases** (per `specs/implementation_plan.md`):
+
 - Phase 4 "Mysterious Owl": Proactive insights and automated analysis
 - Phase 5: Production deployment
 
@@ -98,6 +103,7 @@ The application is Koala, an AI-powered data analysis platform that has complete
 ## Core Requirements from Original CLAUDE.md
 
 ### 1. Commit Strategy - CRITICAL
+
 **You MUST make frequent, granular commits throughout each session.**
 
 - **Commit after EVERY completed todo item** - Each task completion warrants its own commit
@@ -106,6 +112,7 @@ The application is Koala, an AI-powered data analysis platform that has complete
 - **Use descriptive commit messages** that match the granularity of the change
 
 #### Commit Triggers (commit immediately after):
+
 - Completing any item from your todo list
 - Adding a new function or method
 - Modifying existing functionality
@@ -118,6 +125,7 @@ The application is Koala, an AI-powered data analysis platform that has complete
 - Deleting files
 
 #### Commit Message Format:
+
 ```
 <type>(<scope>): <description>
 
@@ -133,14 +141,16 @@ Types: feat, fix, refactor, test, docs, style, chore, config
 **You MUST maintain three separate log files in the `.claude/` directory:**
 
 #### A. Development Log: `.claude/development-log.md`
+
 Update this log IMMEDIATELY after every code change or commit.
 
-```markdown
+````markdown
 # Development Log
 
 ## Session: [DATE TIME]
 
 ### Todo List:
+
 - [ ] Task 1
 - [ ] Task 2
 - [ ] Task 3
@@ -148,24 +158,30 @@ Update this log IMMEDIATELY after every code change or commit.
 ### Changes:
 
 #### [TIME] - <Todo Item or Change Description>
+
 **Commit**: `<commit hash>` - `<commit message>`
-**Files Modified**: 
+**Files Modified**:
+
 - `path/to/file1.js` - Description of changes
 - `path/to/file2.js` - Description of changes
 
 **Details**:
+
 - What was implemented/changed
 - Why this approach was chosen
 - Any architectural decisions made
 - Dependencies added/removed
 
 **Code Snippet** (if significant):
+
 ```<language>
 // Key code changes
 ```
+````
 
 ---
-```
+
+````
 
 #### B. Debugging Log: `.claude/debugging-log.md`
 Update this log whenever debugging or investigating issues.
@@ -178,7 +194,7 @@ Update this log whenever debugging or investigating issues.
 ### Issue: [Brief description]
 
 #### [TIME] - Investigation Started
-**Symptoms**: 
+**Symptoms**:
 - What is happening
 - Error messages
 - Unexpected behavior
@@ -205,14 +221,15 @@ Update this log whenever debugging or investigating issues.
 **Verification**: How you confirmed the fix works
 
 #### [TIME] - Post-Mortem
-**Lessons Learned**: 
+**Lessons Learned**:
 - What could prevent this in the future
 - Any systemic improvements needed
 
 ---
-```
+````
 
 #### C. Decision Log: `.claude/decision-log.md`
+
 Update this log whenever asking the human for permission or a decision.
 
 ```markdown
@@ -223,6 +240,7 @@ This log tracks all instances where Claude asks the human for permission or a de
 ## Format
 
 Each entry contains:
+
 - **Timestamp**: Local time when the question was asked
 - **Question**: The exact question asked to the human
 - **Intended Action**: What Claude wanted to do
@@ -235,6 +253,7 @@ Each entry contains:
 ## Log Entries
 
 ### [DATE TIME]
+
 **Question**: "Would you like me to run `npm install` to install the new dependencies?"
 **Intended Action**: Execute npm install command
 **Reason for Asking**: Installing new packages modifies node_modules and package-lock.json
@@ -259,7 +278,7 @@ Each entry contains:
 # 1. Start session - Create/update todo list in development log
 # 2. Work on first todo item
 # 3. Complete todo item
-# 4. IMMEDIATELY: 
+# 4. IMMEDIATELY:
    - Make a commit
    - Update development log with changes
 # 5. Move to next todo item
@@ -272,6 +291,7 @@ Each entry contains:
 ### 5. Commit Examples Following Todo Granularity
 
 If your todo list looks like:
+
 - [ ] Add user authentication middleware
 - [ ] Create login endpoint
 - [ ] Add input validation for login
@@ -279,6 +299,7 @@ If your todo list looks like:
 - [ ] Update API documentation
 
 You should have 5 separate commits:
+
 1. `feat(auth): add user authentication middleware`
 2. `feat(auth): create login endpoint`
 3. `feat(auth): add input validation for login`
@@ -288,6 +309,7 @@ You should have 5 separate commits:
 ### 6. Emergency Debugging Protocol
 
 When encountering a critical bug:
+
 1. **DON'T PANIC** - Open debugging log immediately
 2. **Document the symptom** before investigating
 3. **Make hypothesis** before making changes
@@ -297,6 +319,7 @@ When encountering a critical bug:
 ### 7. Decision Log Protocol
 
 When asking for permission or a decision:
+
 1. **Update decision log IMMEDIATELY** after asking
 2. **Include the exact question** you asked the human
 3. **Document what you intended to do** before asking
@@ -305,6 +328,7 @@ When asking for permission or a decision:
 6. **Note any settings.json configuration** that would allow autonomous action in the future
 
 Common scenarios requiring permission:
+
 - Installing new packages or dependencies
 - Running potentially destructive commands (rm, database drops, etc.)
 - Making significant architectural changes
@@ -321,6 +345,7 @@ Common scenarios requiring permission:
 - [ ] No debugging code left in (console.logs, etc.)
 
 ## Remember:
+
 - **Commits are cheap, lost work is expensive**
 - **Future you will thank current you for detailed logs**
 - **Each commit should represent one logical change**
@@ -329,6 +354,7 @@ Common scenarios requiring permission:
 ## Log File Templates
 
 ### Initial Development Log Template
+
 ```markdown
 # Development Log
 
@@ -336,6 +362,7 @@ Project: Koala - AI Data Analysis Platform
 Started: [Date]
 
 ## Session Guidelines
+
 - Each session starts with a todo list
 - Each completed todo gets a commit
 - Each commit gets a log entry
@@ -346,9 +373,10 @@ Started: [Date]
 ## Session: [DATE TIME]
 
 ### Todo List:
-- [ ] 
-- [ ] 
-- [ ] 
+
+- [ ]
+- [ ]
+- [ ]
 
 ### Changes:
 
@@ -356,6 +384,7 @@ Started: [Date]
 ```
 
 ### Initial Debugging Log Template
+
 ```markdown
 # Debugging Log
 
@@ -363,6 +392,7 @@ Project: Koala - AI Data Analysis Platform
 Purpose: Track all debugging sessions and their resolutions
 
 ## Debugging Protocol
+
 1. Document symptoms first
 2. Form hypothesis before acting
 3. Log every debugging action
@@ -377,6 +407,7 @@ Purpose: Track all debugging sessions and their resolutions
 ```
 
 ### Initial Decision Log Template
+
 ```markdown
 # Decision Log
 
@@ -385,6 +416,7 @@ This log tracks all instances where Claude asks the human for permission or a de
 ## Format
 
 Each entry contains:
+
 - **Timestamp**: Local time when the question was asked
 - **Question**: The exact question asked to the human
 - **Intended Action**: What Claude wanted to do
