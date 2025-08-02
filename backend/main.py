@@ -68,15 +68,23 @@ DATA_DIR.mkdir(exist_ok=True)
 # Initialize code executor (try Docker first, fallback to subprocess)
 code_executor = None
 try:
-    # Check if Docker is available
+    # Check if Docker is available and image exists
     import subprocess
     result = subprocess.run(['docker', '--version'], capture_output=True)
     if result.returncode == 0:
-        code_executor = CodeExecutor()
-        logger.info("Using Docker-based code executor")
+        # Check if the sandbox image exists
+        image_check = subprocess.run(['docker', 'images', '-q', 'koala-sandbox:latest'], 
+                                   capture_output=True, text=True)
+        if image_check.stdout.strip():
+            code_executor = CodeExecutor()
+            logger.info("Using Docker-based code executor")
+        else:
+            logger.warning("Docker available but koala-sandbox:latest image not found")
+            raise Exception("Sandbox image not built")
     else:
         raise Exception("Docker not available")
-except:
+except Exception as e:
+    logger.info(f"Falling back to subprocess executor: {str(e)}")
     code_executor = SubprocessExecutor()
     logger.info("Using subprocess-based code executor (fallback)")
 
