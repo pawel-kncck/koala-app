@@ -264,3 +264,35 @@ except:
 
 ---
 EOF < /dev/null
+#### [10:20] - Integrate OpenAI GPT-4 API for LLM functionality
+**Commit**: `9be4c00` - `feat(backend): integrate OpenAI GPT-4 API for LLM functionality`
+**Files Modified**: 
+- `backend/llm_service.py` - LLM service for code generation
+- `backend/.env.example` - Environment variable template
+
+**Details**:
+- Created LLMService class with OpenAI client integration
+- Three main capabilities implemented:
+  1. Query analysis - understand user intent and required operations
+  2. Code generation - convert natural language to pandas code
+  3. Result formatting - convert execution results to insights
+- Graceful fallback when API key not configured
+- Clean code extraction from markdown responses
+
+**Code Snippet**:
+```python
+def generate_pandas_code(self, query: str, context: str, data_info: Dict) -> Tuple[bool, str]:
+    """Generate pandas code to answer a data analysis query."""
+    response = self.client.chat.completions.create(
+        model=self.model,
+        messages=[
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt}
+        ],
+        temperature=0.3,
+        max_tokens=1000
+    )
+```
+
+---
+EOF < /dev/null

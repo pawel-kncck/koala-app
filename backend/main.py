@@ -16,6 +16,7 @@ import platform
 # Import code executors
 from code_executor import CodeExecutor
 from subprocess_executor import SubprocessExecutor
+from data_inspector import DataInspector
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -57,6 +58,9 @@ try:
 except:
     code_executor = SubprocessExecutor()
     logger.info("Using subprocess-based code executor (fallback)")
+
+# Initialize data inspector
+data_inspector = DataInspector(uploads_dir=UPLOAD_DIR)
 
 # Models
 class Project(BaseModel):
@@ -205,6 +209,63 @@ async def preview_file(project_id: str, file_id: str, rows: int = 100):
         return preview_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading file: {str(e)}")
+
+@app.get("/api/projects/{project_id}/files/{file_id}/schema")
+async def get_file_schema(project_id: str, file_id: str):
+    """Get detailed schema information for a file"""
+    if project_id not in projects_db:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if project_id not in files_db or file_id not in files_db[project_id]:
+        raise HTTPException(status_code=404, detail="File not found")
+    
+    file_info = files_db[project_id][file_id]
+    file_path = file_info['file_path']
+    encoding = file_info.get('encoding', 'utf-8')
+    
+    # Inspect the file
+    schema = data_inspector.inspect_file(file_path, encoding)
+    
+    if 'error' in schema:
+        raise HTTPException(status_code=500, detail=f"Error inspecting file: {schema['error']}")
+    
+    # Add natural language description
+    schema['description'] = data_inspector.generate_data_description(schema)
+    
+    return schema
+
+@app.get("/api/projects/{project_id}/schema")
+async def get_project_data_schema(project_id: str):
+    """Get schema information for all files in a project"""
+    if project_id not in projects_db:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    if project_id not in files_db or not files_db[project_id]:
+        return {"files": [], "description": "No data files uploaded yet."}
+    
+    schemas = {}
+    for file_id, file_info in files_db[project_id].items():
+        file_path = file_info['file_path']
+        encoding = file_info.get('encoding', 'utf-8')
+        
+        # Inspect each file
+        schema = data_inspector.inspect_file(file_path, encoding)
+        
+        if 'error' not in schema:
+            # Simplify for overview
+            schemas[file_info['filename']] = {
+                'file_id': file_id,
+                'shape': schema['shape'],
+                'columns': schema['columns'],
+                'column_types': {col['name']: col['type'] for col in schema['columns_detail']},
+                'description': data_inspector.generate_data_description(schema)
+            }
+    
+    return {
+        'files': schemas,
+        'total_files': len(schemas),
+        'description': f"This project contains {len(schemas)} data file(s) ready for analysis."
+    }
 
 @app.delete("/api/projects/{project_id}/files/{file_id}")
 async def delete_file(project_id: str, file_id: str):
