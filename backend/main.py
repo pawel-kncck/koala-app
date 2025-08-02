@@ -599,70 +599,85 @@ async def chat(
             "timestamp": datetime.utcnow().isoformat()
         }
     
-    try:
-        # Generate code using LLM
-        success, generated_code = llm_service.generate_pandas_code(
-            query=message.message,
-            context=context,
-            data_info=data_info
-        )
+    # Check if LLM service is available
+    if llm_service is None:
+        # Use a simple fallback that shows data structure
+        code_lines = ["# No LLM service available - showing data structure"]
+        code_lines.append("import pandas as pd")
+        code_lines.append("import numpy as np")
+        code_lines.append("")
         
-        if not success:
-            raise Exception(generated_code)
+        for dataset_name, info in data_info.items():
+            if isinstance(info, dict) and 'columns' in info:
+                code_lines.append(f"# Dataset: {dataset_name}")
+                code_lines.append(f"print(f'Shape of {dataset_name}: {{{dataset_name}.shape}}')")
+                code_lines.append(f"print(f'Columns in {dataset_name}:')")
+                code_lines.append(f"print({dataset_name}.columns.tolist())")
+                code_lines.append(f"print()")
+                code_lines.append(f"print('First 5 rows of {dataset_name}:')")
+                code_lines.append(f"print({dataset_name}.head())")
+                code_lines.append(f"print('\\n' + '='*80 + '\\n')")
         
-        # Execute the generated code
-        execution_request = ExecuteCode(code=generated_code)
-        execution_result = await execute_code_internal(project_id, execution_request, project.files)
-        
-        # Format results as insight
+        generated_code = "\n".join(code_lines)
+        success = True
+    else:
+        try:
+            # Generate code using LLM
+            success, generated_code = llm_service.generate_pandas_code(
+                query=message.message,
+                context=context,
+                data_info=data_info
+            )
+            
+            if not success:
+                raise Exception(generated_code)
+        except Exception as e:
+            logger.error(f"Code generation failed: {str(e)}")
+            return {
+                "response": f"I encountered an error: {str(e)}",
+                "timestamp": datetime.utcnow().isoformat()
+            }
+    
+    # Execute the generated code
+    execution_request = ExecuteCode(code=generated_code)
+    execution_result = await execute_code_internal(project_id, execution_request, project.files)
+    
+    # Format results as insight
+    if llm_service is None:
+        # Simple formatting without LLM
+        insight = "Here's what I found in your data:\n\n"
+        if execution_result.get("output"):
+            insight += execution_result.get("output", "")
+    else:
         insight = llm_service.format_results_as_insight(
             query=message.message,
             results=execution_result.get("results", {}),
             context=context
         )
-        
-        # Build response
-        response_text = f"{insight}\n\n"
-        if execution_result.get("output"):
-            response_text += f"**Output:**\n```\n{execution_result['output']}\n```\n\n"
-        response_text += f"**Code:**\n```python\n{generated_code}\n```"
-        
-        # Save assistant message
-        assistant_msg = ChatHistory(
-            project_id=project_id,
-            role="assistant",
-            message=response_text,
-            generated_code=generated_code,
-            execution_results=execution_result.get("results")
-        )
-        db.add(assistant_msg)
-        await db.commit()
-        
-        return {
-            "response": response_text,
-            "code": generated_code,
-            "results": execution_result.get("results", {}),
-            "timestamp": datetime.utcnow().isoformat()
-        }
-        
-    except Exception as e:
-        error_msg = f"I encountered an error: {str(e)}"
-        
-        # Save error message
-        assistant_msg = ChatHistory(
-            project_id=project_id,
-            role="assistant",
-            message=error_msg,
-            error_message=str(e)
-        )
-        db.add(assistant_msg)
-        await db.commit()
-        
-        return {
-            "response": error_msg,
-            "error": str(e),
-            "timestamp": datetime.utcnow().isoformat()
-        }
+    
+    # Build response
+    response_text = f"{insight}\n\n"
+    if execution_result.get("output"):
+        response_text += f"**Output:**\n```\n{execution_result['output']}\n```\n\n"
+    response_text += f"**Code:**\n```python\n{generated_code}\n```"
+    
+    # Save assistant message
+    assistant_msg = ChatHistory(
+        project_id=project_id,
+        role="assistant",
+        message=response_text,
+        generated_code=generated_code,
+        execution_results=execution_result.get("results")
+    )
+    db.add(assistant_msg)
+    await db.commit()
+    
+    return {
+        "response": response_text,
+        "code": generated_code,
+        "results": execution_result.get("results", {}),
+        "timestamp": datetime.utcnow().isoformat()
+    }
 
 
 # Code execution endpoint

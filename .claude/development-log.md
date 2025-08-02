@@ -622,4 +622,16 @@ backend/.env.example  # Only safe example file tracked
 - Added common exception types needed by pandas
 - Fixed duplicate import builtins statement
 
+#### [23:50] - Setup mock LLM response for testing without API keys
+**Commit**: `f900cf9` - `fix(backend): add mock LLM response for testing without API keys`
+**Files Modified**: 
+- `backend/llm_service.py` - Added fallback code generation
+
+**Details**:
+- Chat failing with "Incorrect API key provided: your-api*****here"
+- System was trying to use OpenAI with dummy key since Gemini wasn't available
+- Added mock code generation that shows dataset structure when no API key
+- Mock response displays shape, columns, and sample data for each dataset
+- Allows testing chat functionality without requiring API keys
+
 ---

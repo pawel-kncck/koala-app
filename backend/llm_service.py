@@ -62,8 +62,8 @@ class LLMService:
         self.model = model or "gemini-1.5-flash"
         self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
         
-        if not self.api_key:
-            logger.warning("No Gemini API key found. LLM features will be limited.")
+        if not self.api_key or self.api_key.startswith("your-"):
+            logger.warning("No valid Gemini API key found. LLM features will be limited.")
             return
             
         genai.configure(api_key=self.api_key)
@@ -80,8 +80,8 @@ class LLMService:
         self.model = model or "gpt-3.5-turbo"
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         
-        if not self.api_key:
-            logger.warning("No OpenAI API key found. LLM features will be limited.")
+        if not self.api_key or self.api_key.startswith("your-api-key"):
+            logger.warning("No valid OpenAI API key found. LLM features will be limited.")
             return
             
         openai.api_key = self.api_key
