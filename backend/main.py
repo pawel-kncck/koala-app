@@ -275,12 +275,35 @@ async def upload_file(
     with open(file_path, 'wb') as f:
         f.write(content)
     
-    # Get file schema
+    # Get file schema and generate preview
     try:
         schema_info = data_inspector.inspect_file(str(file_path))
     except Exception as e:
         logger.error(f"Failed to inspect file: {str(e)}")
         schema_info = None
+    
+    # Generate preview data
+    preview_data = None
+    try:
+        if file_ext == '.csv':
+            # Detect encoding
+            detected = chardet.detect(content)
+            encoding = detected['encoding'] or 'utf-8'
+            df = pd.read_csv(file_path, encoding=encoding, nrows=100)
+        else:
+            df = pd.read_excel(file_path, nrows=100)
+        
+        # Replace NaN and infinity values
+        df = df.replace([float('inf'), float('-inf')], None)
+        df = df.where(pd.notnull(df), None)
+        
+        preview_data = {
+            "columns": df.columns.tolist(),
+            "data": df.to_dict('records'),
+            "total_rows": len(df)
+        }
+    except Exception as e:
+        logger.error(f"Failed to generate preview: {str(e)}")
     
     # Create file record
     file_record = FileModel(
@@ -290,7 +313,8 @@ async def upload_file(
         file_path=str(file_path),
         file_type=file_ext,
         size=len(content),
-        schema_info=schema_info
+        schema_info=schema_info,
+        preview_data=preview_data
     )
     
     db.add(file_record)
@@ -314,7 +338,7 @@ async def preview_file(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """Preview file contents."""
+    """Preview file contents - returns pre-calculated preview data."""
     # Get file with project verification
     stmt = select(FileModel).join(Project).where(
         and_(
@@ -329,6 +353,11 @@ async def preview_file(
     if not file_record:
         raise HTTPException(status_code=404, detail="File not found")
     
+    # Return pre-calculated preview if available
+    if file_record.preview_data:
+        return file_record.preview_data
+    
+    # Fallback: generate preview on demand (for old files)
     file_path = Path(file_record.file_path)
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found on disk")
@@ -349,11 +378,17 @@ async def preview_file(
         df = df.replace([float('inf'), float('-inf')], None)
         df = df.where(pd.notnull(df), None)
         
-        return {
+        preview_data = {
             "columns": df.columns.tolist(),
             "data": df.to_dict('records'),
             "total_rows": len(df)
         }
+        
+        # Cache the preview for future use
+        file_record.preview_data = preview_data
+        await db.commit()
+        
+        return preview_data
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to read file: {str(e)}")
 

@@ -65,6 +65,9 @@ class File(Base):
     # Data schema information (stored as JSON)
     schema_info = Column(JSON, nullable=True)
     
+    # Pre-calculated preview data (stored as JSON)
+    preview_data = Column(JSON, nullable=True)
+    
     # Relationships
     project = relationship("Project", back_populates="files")
 
