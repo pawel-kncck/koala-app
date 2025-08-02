@@ -1,6 +1,6 @@
 """
 LLM service for generating code and analyzing data queries.
-Supports OpenAI GPT-4 and can be extended for other providers.
+Supports Google Gemini (primary) and OpenAI GPT (secondary).
 """
 
 import os
@@ -8,36 +8,144 @@ import logging
 from typing import Dict, List, Optional, Tuple
 import json
 from dotenv import load_dotenv
+from enum import Enum
 
-# For now, use the v0.x API which is already installed
-import openai
+# LLM imports
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+    
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
 
 # Load environment variables
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+class LLMProvider(Enum):
+    """Supported LLM providers."""
+    GEMINI = "gemini"
+    OPENAI = "openai"
+
 class LLMService:
     """Service for interacting with Large Language Models."""
     
-    def __init__(self, model: str = "gpt-3.5-turbo", api_key: Optional[str] = None):
+    def __init__(self, provider: str = "gemini", model: Optional[str] = None, api_key: Optional[str] = None):
         """
         Initialize the LLM service.
         
         Args:
-            model: Model identifier (e.g., "gpt-4", "gpt-3.5-turbo")
-            api_key: OpenAI API key (uses env var if not provided)
+            provider: LLM provider ("gemini" or "openai")
+            model: Model identifier (uses default if not provided)
+            api_key: API key (uses env var if not provided)
         """
-        self.model = model
+        self.provider = LLMProvider(provider.lower())
+        self.has_api_key = False
+        
+        if self.provider == LLMProvider.GEMINI:
+            self._init_gemini(model, api_key)
+        elif self.provider == LLMProvider.OPENAI:
+            self._init_openai(model, api_key)
+    
+    def _init_gemini(self, model: Optional[str], api_key: Optional[str]):
+        """Initialize Google Gemini."""
+        if not GEMINI_AVAILABLE:
+            logger.error("Google Generative AI package not installed")
+            return
+            
+        self.model = model or "gemini-1.5-flash"
+        self.api_key = api_key or os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY")
+        
+        if not self.api_key:
+            logger.warning("No Gemini API key found. LLM features will be limited.")
+            return
+            
+        genai.configure(api_key=self.api_key)
+        self.client = genai.GenerativeModel(self.model)
+        self.has_api_key = True
+        logger.info(f"LLM service initialized with Gemini model: {self.model}")
+    
+    def _init_openai(self, model: Optional[str], api_key: Optional[str]):
+        """Initialize OpenAI."""
+        if not OPENAI_AVAILABLE:
+            logger.error("OpenAI package not installed")
+            return
+            
+        self.model = model or "gpt-3.5-turbo"
         self.api_key = api_key or os.getenv("OPENAI_API_KEY")
         
         if not self.api_key:
             logger.warning("No OpenAI API key found. LLM features will be limited.")
-            self.has_api_key = False
-        else:
-            openai.api_key = self.api_key
-            self.has_api_key = True
-            logger.info(f"LLM service initialized with model: {self.model}")
+            return
+            
+        openai.api_key = self.api_key
+        self.has_api_key = True
+        logger.info(f"LLM service initialized with OpenAI model: {self.model}")
+    
+    def _call_llm(self, system_prompt: str, user_prompt: str, temperature: float = 0.3, max_tokens: Optional[int] = None) -> str:
+        """
+        Call the configured LLM with the given prompts.
+        
+        Args:
+            system_prompt: System/instruction prompt
+            user_prompt: User query prompt
+            temperature: Sampling temperature
+            max_tokens: Maximum tokens in response
+            
+        Returns:
+            LLM response text
+        """
+        if not self.has_api_key:
+            raise ValueError("LLM service not configured with API key")
+        
+        if self.provider == LLMProvider.GEMINI:
+            return self._call_gemini(system_prompt, user_prompt, temperature, max_tokens)
+        elif self.provider == LLMProvider.OPENAI:
+            return self._call_openai(system_prompt, user_prompt, temperature, max_tokens)
+    
+    def _call_gemini(self, system_prompt: str, user_prompt: str, temperature: float, max_tokens: Optional[int]) -> str:
+        """Call Google Gemini API."""
+        # Combine prompts for Gemini
+        full_prompt = f"{system_prompt}\n\n{user_prompt}"
+        
+        generation_config = {
+            "temperature": temperature,
+            "top_p": 0.95,
+            "top_k": 40,
+        }
+        
+        if max_tokens:
+            generation_config["max_output_tokens"] = max_tokens
+        
+        response = self.client.generate_content(
+            full_prompt,
+            generation_config=generation_config,
+        )
+        
+        return response.text
+    
+    def _call_openai(self, system_prompt: str, user_prompt: str, temperature: float, max_tokens: Optional[int]) -> str:
+        """Call OpenAI API."""
+        kwargs = {
+            "model": self.model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "temperature": temperature
+        }
+        
+        if max_tokens:
+            kwargs["max_tokens"] = max_tokens
+        
+        response = openai.ChatCompletion.create(**kwargs)
+        return response.choices[0].message.content
     
     def analyze_query(self, query: str, context: str, data_schema: Dict) -> Dict:
         """
@@ -77,16 +185,15 @@ Analyze this query and return a JSON object with:
 - description: brief description of what to do"""
         
         try:
-            response = openai.ChatCompletion.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.3
-            )
+            response = self._call_llm(system_prompt, user_prompt, temperature=0.3)
             
-            analysis = json.loads(response.choices[0].message.content)
+            # Extract JSON from response (handle potential markdown formatting)
+            if "```json" in response:
+                response = response.split("```json")[1].split("```")[0]
+            elif "```" in response:
+                response = response.split("```")[1].split("```")[0]
+            
+            analysis = json.loads(response.strip())
             return analysis
             
         except Exception as e:
@@ -106,7 +213,7 @@ Analyze this query and return a JSON object with:
             Tuple of (success, generated_code)
         """
         if not self.has_api_key:
-            return False, "# LLM service not available\nprint('Please configure OpenAI API key')"
+            return False, "# LLM service not available\nprint('Please configure API key')"
         
         system_prompt = """You are an expert Python data analyst. Generate pandas code to answer data queries.
 
@@ -145,19 +252,10 @@ Generate Python code using pandas to answer this query. Make sure to:
 4. Create visualizations if requested"""
         
         try:
-            response = openai.ChatCompletion.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.3,
-                max_tokens=1000
-            )
-            
-            code = response.choices[0].message.content
+            response = self._call_llm(system_prompt, user_prompt, temperature=0.3, max_tokens=1000)
             
             # Clean up the code (remove markdown if present)
+            code = response
             if "```python" in code:
                 code = code.split("```python")[1].split("```")[0]
             elif "```" in code:
@@ -213,17 +311,8 @@ Results:
 Convert these results into a clear, conversational insight that answers the user's query."""
         
         try:
-            response = openai.ChatCompletion.create(
-                model=self.model,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
-                ],
-                temperature=0.5,
-                max_tokens=300
-            )
-            
-            return response.choices[0].message.content
+            response = self._call_llm(system_prompt, user_prompt, temperature=0.5, max_tokens=300)
+            return response
             
         except Exception as e:
             logger.error(f"Insight formatting failed: {str(e)}")
@@ -260,3 +349,34 @@ Convert these results into a clear, conversational insight that answers the user
                     formatted.append(f"  {k}: {v}")
         
         return "\n".join(formatted) if formatted else "Analysis complete."
+
+
+# Factory function to create LLM service with fallback
+def create_llm_service(preferred_provider: str = "gemini") -> Optional[LLMService]:
+    """
+    Create an LLM service instance with fallback support.
+    
+    Args:
+        preferred_provider: Preferred provider ("gemini" or "openai")
+        
+    Returns:
+        LLMService instance or None if no provider is available
+    """
+    providers = [preferred_provider]
+    if preferred_provider == "gemini":
+        providers.append("openai")
+    else:
+        providers.append("gemini")
+    
+    for provider in providers:
+        try:
+            service = LLMService(provider=provider)
+            if service.has_api_key:
+                logger.info(f"Using {provider} as LLM provider")
+                return service
+        except Exception as e:
+            logger.warning(f"Failed to initialize {provider}: {str(e)}")
+            continue
+    
+    logger.error("No LLM provider available")
+    return None

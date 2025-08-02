@@ -17,7 +17,7 @@ import platform
 from code_executor import CodeExecutor
 from subprocess_executor import SubprocessExecutor
 from data_inspector import DataInspector
-from llm_service import LLMService
+from llm_service import create_llm_service
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -63,8 +63,8 @@ except:
 # Initialize data inspector
 data_inspector = DataInspector(uploads_dir=UPLOAD_DIR)
 
-# Initialize LLM service
-llm_service = LLMService()
+# Initialize LLM service (Gemini as primary, OpenAI as fallback)
+llm_service = create_llm_service(preferred_provider="gemini")
 
 # Models
 class Project(BaseModel):
