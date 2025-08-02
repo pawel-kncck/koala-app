@@ -14,5 +14,11 @@ export default defineConfig({
     port: 8080,
     strictPort: true,
     host: true, // This allows access from network
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8000',
+        changeOrigin: true,
+      },
+    },
   },
 });
